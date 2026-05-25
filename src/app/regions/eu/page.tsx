@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -6,30 +8,31 @@ import Topbar from '@/components/layout/Topbar'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import ProductCard from '@/components/product/ProductCard'
+import { normaliseProducts } from '@/lib/utils/helpers'
 import type { Product, Category } from '@/types/database'
 
 export const metadata: Metadata = {
   title: 'Exhibition Booth Rental Europe',
-  description: 'B2B exhibition booth and furniture rental across Germany, France, Netherlands, Spain, Italy and more. CE certified, VAT invoicing, GDPR compliant.',
+  description: 'B2B exhibition booth and furniture rental across Germany, France, Netherlands, Spain, Italy and more.',
 }
+
+const highlights = [
+  { flag: '🇩🇪', country: 'Germany',     venues: 'Messe Frankfurt · Messe Düsseldorf · Messe Berlin' },
+  { flag: '🇳🇱', country: 'Netherlands', venues: 'Amsterdam RAI' },
+  { flag: '🇫🇷', country: 'France',      venues: 'Paris Nord Villepinte' },
+  { flag: '🇪🇸', country: 'Spain',       venues: 'Fira Barcelona · IFEMA Madrid' },
+  { flag: '🇮🇹', country: 'Italy',       venues: 'Fiera Milano · Bologna Fiere' },
+  { flag: '🇧🇪', country: 'Belgium',     venues: 'Brussels Expo' },
+]
 
 export default async function EURegionPage() {
   const supabase = await createClient()
-  const { data: products } = await supabase
+  const { data: raw } = await supabase
     .from('products').select('*, categories(*)')
     .eq('is_active', true).contains('available_regions', ['EU'])
     .eq('is_featured', true).limit(6)
-  const { data: venues } = await supabase
-    .from('venues').select('*').eq('region', 'EU').order('name')
 
-  const highlights = [
-    { flag: '🇩🇪', country: 'Germany',     venues: 'Messe Frankfurt · Messe Düsseldorf · Messe Berlin' },
-    { flag: '🇳🇱', country: 'Netherlands', venues: 'Amsterdam RAI' },
-    { flag: '🇫🇷', country: 'France',      venues: 'Paris Nord Villepinte · Paris Le Bourget' },
-    { flag: '🇪🇸', country: 'Spain',       venues: 'Fira Barcelona · IFEMA Madrid' },
-    { flag: '🇮🇹', country: 'Italy',       venues: 'Fiera Milano · Bologna Fiere' },
-    { flag: '🇧🇪', country: 'Belgium',     venues: 'Brussels Expo' },
-  ]
+  const products = normaliseProducts(raw || []) as (Product & { categories: Category })[]
 
   return (
     <>
@@ -49,17 +52,16 @@ export default async function EURegionPage() {
               Premium B2B exhibition booth rental across all major EU trade show markets. CE-certified equipment, full VAT invoicing, GDPR-compliant — delivered and installed at Europe's top venues.
             </p>
             <div className="flex flex-wrap gap-2">
-              {['CE Certified', 'VAT Invoicing', 'GDPR Compliant', 'EU Fire Safety Standards', 'Pricing in EUR'].map(tag => (
-                <span key={tag} className="tag-eu bg-blue-900/30 text-blue-200 border border-blue-800/40 px-3 py-1.5 rounded-full text-[12px]">{tag}</span>
+              {['CE Certified', 'VAT Invoicing', 'GDPR Compliant', 'EU Fire Safety', 'Pricing in EUR'].map(tag => (
+                <span key={tag} className="bg-blue-900/30 text-blue-200 border border-blue-800/40 px-3 py-1.5 rounded-full text-[12px]">{tag}</span>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Countries */}
         <section className="py-14 px-10 max-w-[1100px] mx-auto">
           <p className="section-label">Coverage</p>
-          <h2 className="section-title mb-8">EU Countries & Venues</h2>
+          <h2 className="section-title mb-8">EU Countries &amp; Venues</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
             {highlights.map(h => (
               <div key={h.country} className="card p-5">
@@ -72,13 +74,15 @@ export default async function EURegionPage() {
             ))}
           </div>
 
-          <p className="section-label">Featured Products</p>
-          <h2 className="section-title mb-8">Available Across EU</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-            {(products as (Product & { categories: Category })[])?.map(p => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
+          {products.length > 0 && (
+            <>
+              <p className="section-label">Featured Products</p>
+              <h2 className="section-title mb-8">Available Across EU</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+                {products.map(p => <ProductCard key={p.id} product={p} />)}
+              </div>
+            </>
+          )}
           <div className="text-center">
             <Link href="/products?region=EU" className="btn-primary px-8 py-3.5">Browse All EU Products</Link>
           </div>

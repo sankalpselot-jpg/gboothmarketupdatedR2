@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import type { Metadata } from 'next'
 import RegionBar from '@/components/region/RegionBar'
@@ -6,6 +8,8 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import CookieBanner from '@/components/layout/CookieBanner'
 import ProductsGrid from '@/components/product/ProductsGrid'
+import { normaliseProducts } from '@/lib/utils/helpers'
+import type { Product, Category, Venue } from '@/types/database'
 
 export const metadata: Metadata = {
   title: 'Browse Products',
@@ -25,11 +29,11 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<SearchParams>
 }) {
-  const params  = await searchParams
+  const params   = await searchParams
   const supabase = await createClient()
 
-  const page  = parseInt(params.page || '1')
-  const limit = 18
+  const page   = parseInt(params.page || '1')
+  const limit  = 18
   const offset = (page - 1) * limit
 
   let query = supabase
@@ -47,10 +51,13 @@ export default async function ProductsPage({
     .order('is_featured', { ascending: false })
     .order('created_at',  { ascending: false })
 
-  const { data: products, count } = await query.range(offset, offset + limit - 1)
-  const { data: categories }      = await supabase
+  const { data: raw, count } = await query.range(offset, offset + limit - 1)
+
+  const products = normaliseProducts(raw || []) as (Product & { categories: Category })[]
+
+  const { data: categories } = await supabase
     .from('categories').select('*').order('sort_order')
-  const { data: venues }          = await supabase
+  const { data: venues } = await supabase
     .from('venues').select('id, name, city, region').order('region').order('name')
 
   const totalPages = Math.ceil((count || 0) / limit)
@@ -60,9 +67,9 @@ export default async function ProductsPage({
       <RegionBar /><Topbar /><Header />
       <main className="min-h-screen bg-cream">
         <ProductsGrid
-          products={products || []}
-          categories={categories || []}
-          venues={venues || []}
+          products={products}
+          categories={(categories || []) as Category[]}
+          venues={(venues || []) as Pick<Venue, 'id' | 'name' | 'city' | 'region'>[]}
           searchParams={params}
           totalCount={count || 0}
           totalPages={totalPages}

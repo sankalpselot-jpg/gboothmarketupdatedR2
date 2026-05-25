@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { Heart } from 'lucide-react'
 import { useWishlist } from '@/hooks/useWishlist'
@@ -14,29 +14,35 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import type { Product, Category } from '@/types/database'
 
+type ProductWithCat = Product & { categories: Category | null }
+
 export default function WishlistPage() {
-  const { ids, toggle } = useWishlist()
-  const { user }        = useAuth()
-  const { addItem }     = useCart(user?.id)
-  const { currency, region } = useRegion()
-  const [products, setProducts] = useState<(Product & { categories: Category })[]>([])
-  const [loading, setLoading]   = useState(false)
-  const taxLabel = TAX_LABELS[region]
+  const { ids, toggle }           = useWishlist()
+  const { user }                  = useAuth()
+  const { addItem }               = useCart(user?.id)
+  const { currency, region }      = useRegion()
+  const [products, setProducts]   = useState<ProductWithCat[]>([])
+  const [loading, setLoading]     = useState(false)
+  const taxLabel                  = TAX_LABELS[region]
+  const supabase                  = useMemo(() => createClient(), [])
 
   useEffect(() => {
     if (!ids.length) { setProducts([]); return }
     setLoading(true)
-    const supabase = createClient()
     supabase
       .from('products')
       .select('*, categories(*)')
       .in('id', ids)
       .eq('is_active', true)
       .then(({ data }) => {
-        setProducts((data as (Product & { categories: Category })[]) || [])
+        const normalised = (data || []).map(p => ({
+          ...p,
+          categories: Array.isArray(p.categories) ? (p.categories[0] ?? null) : p.categories,
+        })) as ProductWithCat[]
+        setProducts(normalised)
         setLoading(false)
       })
-  }, [ids])
+  }, [ids, supabase])
 
   return (
     <>
@@ -46,21 +52,26 @@ export default function WishlistPage() {
           <h1 className="font-display font-extrabold text-3xl text-navy mb-8">Wishlist</h1>
 
           {loading && (
-            <div className="text-center py-20 text-[#6B6B6B]">Loading…</div>
+            <div className="flex items-center justify-center py-20 text-[#6B6B6B] gap-3">
+              <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+              Loading…
+            </div>
           )}
 
           {!loading && ids.length === 0 && (
             <div className="card p-16 text-center">
               <Heart className="w-14 h-14 mx-auto mb-4 text-[#DDD8CF]" />
               <h2 className="font-display font-bold text-xl text-navy mb-2">Your wishlist is empty</h2>
-              <p className="text-[#6B6B6B] mb-6">Save items you're interested in — click the ♡ on any product.</p>
+              <p className="text-[#6B6B6B] mb-6">Save items you are interested in — click the ♡ on any product.</p>
               <Link href="/products" className="btn-primary inline-block">Browse Products</Link>
             </div>
           )}
 
           {!loading && products.length > 0 && (
             <>
-              <p className="text-[13px] text-[#6B6B6B] mb-6">{products.length} saved item{products.length !== 1 ? 's' : ''}</p>
+              <p className="text-[13px] text-[#6B6B6B] mb-6">
+                {products.length} saved item{products.length !== 1 ? 's' : ''}
+              </p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {products.map(p => {
                   const price = getPriceForCurrency(p, currency)
@@ -69,15 +80,17 @@ export default function WishlistPage() {
                       <Link href={`/products/${p.slug}`}>
                         <div className="bg-cream-dark aspect-[4/3] flex items-center justify-center overflow-hidden">
                           {p.images?.[0]
-                            ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                            ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                             : <svg className="w-16 h-16 opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>
                           }
                         </div>
                       </Link>
                       <div className="p-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-gold mb-1">{p.categories?.name}</p>
+                        {p.categories && (
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gold mb-1">{p.categories.name}</p>
+                        )}
                         <Link href={`/products/${p.slug}`}>
-                          <h3 className="font-display font-semibold text-navy text-[15px] mb-3 leading-snug hover:text-gold transition-colors">{p.name}</h3>
+                          <h3 className="font-display font-semibold text-navy text-[15px] mb-3 leading-snug hover:text-gold transition-colors line-clamp-2">{p.name}</h3>
                         </Link>
                         <div className="flex items-center justify-between pt-3 border-t border-cream-dark">
                           <div>
@@ -88,7 +101,7 @@ export default function WishlistPage() {
                             <button
                               onClick={() => toggle(p.id)}
                               className="p-2 rounded border border-[#DDD8CF] text-red-500 hover:bg-red-50 transition-colors"
-                              title="Remove"
+                              title="Remove from wishlist"
                             >
                               <Heart size={15} className="fill-red-500" />
                             </button>
@@ -105,8 +118,6 @@ export default function WishlistPage() {
                   )
                 })}
               </div>
-
-              {/* Add all to cart */}
               <div className="mt-8 text-center">
                 <button
                   onClick={() => products.forEach(p => addItem(p.id))}

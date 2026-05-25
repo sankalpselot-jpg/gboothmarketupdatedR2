@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -6,30 +8,33 @@ import Topbar from '@/components/layout/Topbar'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import ProductCard from '@/components/product/ProductCard'
+import { normaliseProducts } from '@/lib/utils/helpers'
 import type { Product, Category } from '@/types/database'
 
 export const metadata: Metadata = {
   title: 'Exhibition Booth Rental India',
-  description: 'B2B exhibition booth and furniture rental across India. ISI marked, GST invoicing, BIS standards. Pragati Maidan, BIEC, HITEX, BEC and more.',
+  description: 'B2B exhibition booth rental across India. ISI marked, GST invoicing, BIS standards. Pragati Maidan, BIEC, HITEX and more.',
 }
+
+const indiaVenues = [
+  { name: 'Pragati Maidan (ITPO)',   city: 'New Delhi',  note: "India's premier trade fair ground" },
+  { name: 'Bombay Exhibition Centre', city: 'Mumbai',     note: 'Largest venue in Western India' },
+  { name: 'BIEC',                    city: 'Bengaluru',  note: 'Bangalore International Exhibition Centre' },
+  { name: 'HITEX Exhibition Centre',  city: 'Hyderabad',  note: 'Hyderabad International Trade Expositions' },
+  { name: 'Chennai Trade Centre',    city: 'Chennai',    note: "South India's leading exhibition venue" },
+  { name: 'KTPO',                    city: 'Bengaluru',  note: 'Karnataka Trade Promotion Organisation' },
+  { name: 'Bombay Convention Centre', city: 'Mumbai',     note: 'BKC — modern city centre venue' },
+  { name: 'Science City',            city: 'Kolkata',    note: 'Eastern India events hub' },
+]
 
 export default async function IndiaRegionPage() {
   const supabase = await createClient()
-  const { data: products } = await supabase
+  const { data: raw } = await supabase
     .from('products').select('*, categories(*)')
     .eq('is_active', true).contains('available_regions', ['IN'])
     .eq('is_featured', true).limit(6)
 
-  const indiaVenues = [
-    { name: 'Pragati Maidan (ITPO)',      city: 'New Delhi',   note: 'India\'s premier trade fair ground' },
-    { name: 'Bombay Exhibition Centre',    city: 'Mumbai',      note: 'Largest venue in Western India' },
-    { name: 'BIEC',                        city: 'Bengaluru',   note: 'Bangalore International Exhibition Centre' },
-    { name: 'HITEX Exhibition Centre',     city: 'Hyderabad',   note: 'Hyderabad International Trade Expositions' },
-    { name: 'Chennai Trade Centre',        city: 'Chennai',     note: 'South India\'s leading exhibition venue' },
-    { name: 'Bombay Convention Centre',    city: 'Mumbai',      note: 'BKC — modern city centre venue' },
-    { name: 'KTPO',                        city: 'Bengaluru',   note: 'Karnataka Trade Promotion Organisation' },
-    { name: 'Science City',               city: 'Kolkata',     note: 'Eastern India events hub' },
-  ]
+  const products = normaliseProducts(raw || []) as (Product & { categories: Category })[]
 
   return (
     <>
@@ -46,7 +51,7 @@ export default async function IndiaRegionPage() {
               </div>
             </div>
             <p className="text-white/60 text-base max-w-2xl leading-relaxed mb-8">
-              Exhibition booth rental across Delhi, Mumbai, Bengaluru, Hyderabad, Chennai and more. ISI-marked electrical equipment, GST-compliant invoicing with GSTIN support, BIS safety standards.
+              Exhibition booth rental across Delhi, Mumbai, Bengaluru, Hyderabad, Chennai and more. ISI-marked equipment, GST-compliant invoicing with GSTIN support, BIS safety standards.
             </p>
             <div className="flex flex-wrap gap-2">
               {['ISI Marked', 'GST Invoice', 'GSTIN Support', 'BIS Standards', 'Pricing in INR', 'IRP e-Invoice'].map(tag => (
@@ -69,13 +74,15 @@ export default async function IndiaRegionPage() {
             ))}
           </div>
 
-          <p className="section-label">Featured Products</p>
-          <h2 className="section-title mb-8">Available Across India</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-            {(products as (Product & { categories: Category })[])?.map(p => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
+          {products.length > 0 && (
+            <>
+              <p className="section-label">Featured Products</p>
+              <h2 className="section-title mb-8">Available Across India</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+                {products.map(p => <ProductCard key={p.id} product={p} />)}
+              </div>
+            </>
+          )}
           <div className="text-center">
             <Link href="/products?region=IN" className="btn-primary px-8 py-3.5">Browse All India Products</Link>
           </div>

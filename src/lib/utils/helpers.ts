@@ -25,3 +25,20 @@ export function truncate(text: string, length: number): string {
   if (text.length <= length) return text
   return text.slice(0, length) + '...'
 }
+
+
+/**
+ * Supabase returns joined relations as arrays even for single-row joins.
+ * This normalises `categories` (and optionally `venues`) to a single object.
+ */
+export function normaliseProduct<T extends { categories?: unknown; venues?: unknown }>(p: T) {
+  return {
+    ...p,
+    categories: Array.isArray(p.categories) ? p.categories[0] ?? null : p.categories,
+    venues:     Array.isArray(p.venues)     ? p.venues[0]     ?? null : p.venues,
+  }
+}
+
+export function normaliseProducts<T extends { categories?: unknown }>(rows: T[]) {
+  return rows.map(normaliseProduct)
+}

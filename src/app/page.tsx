@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import RegionBar from '@/components/region/RegionBar'
 import Topbar from '@/components/layout/Topbar'
@@ -12,13 +14,14 @@ import HowItWorks from '@/components/home/HowItWorks'
 import ComplianceSection from '@/components/home/ComplianceSection'
 import TrustBar from '@/components/home/TrustBar'
 import CtaBanner from '@/components/home/CtaBanner'
+import type { Product, Category, Venue } from '@/types/database'
 
 export const revalidate = 3600
 
 export default async function HomePage() {
   const supabase = await createClient()
 
-  const { data: featuredProducts } = await supabase
+  const { data: featuredRaw } = await supabase
     .from('products')
     .select('*, categories(*)')
     .eq('is_active', true)
@@ -30,6 +33,12 @@ export default async function HomePage() {
     .select('*')
     .order('region')
 
+  // Supabase returns joined relations as arrays; cast to our expected shape
+  const featuredProducts = (featuredRaw || []).map(p => ({
+    ...p,
+    categories: Array.isArray(p.categories) ? p.categories[0] : p.categories,
+  })) as (Product & { categories: Category })[]
+
   return (
     <>
       <RegionBar />
@@ -38,8 +47,8 @@ export default async function HomePage() {
       <ShowsTicker />
       <main>
         <HeroSection />
-        <ProductsSection products={featuredProducts || []} />
-        <VenuesSection venues={venues || []} />
+        <ProductsSection products={featuredProducts} />
+        <VenuesSection venues={(venues || []) as Venue[]} />
         <HowItWorks />
         <ComplianceSection />
         <TrustBar />

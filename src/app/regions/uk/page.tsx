@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -6,30 +8,31 @@ import Topbar from '@/components/layout/Topbar'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import ProductCard from '@/components/product/ProductCard'
+import { normaliseProducts } from '@/lib/utils/helpers'
 import type { Product, Category } from '@/types/database'
 
 export const metadata: Metadata = {
   title: 'Exhibition Booth Rental UK',
-  description: 'B2B exhibition booth and furniture rental across the United Kingdom. UKCA marked, UK VAT invoicing, BS EN safety standards. ExCeL, NEC, Olympia and more.',
+  description: 'B2B exhibition booth rental across the United Kingdom. UKCA marked, UK VAT invoicing, BS EN safety standards.',
 }
+
+const ukVenues = [
+  { name: 'ExCeL London',       city: 'London E16',     note: 'Largest exhibition centre in London' },
+  { name: 'Olympia London',     city: 'Hammersmith W14', note: 'Historic West London venue' },
+  { name: 'NEC Birmingham',     city: 'Birmingham B40',  note: "UK's largest convention complex" },
+  { name: 'Manchester Central', city: 'Manchester M2',   note: 'City centre venue' },
+  { name: 'SEC Glasgow',        city: 'Glasgow G3',      note: 'Scottish Event Campus' },
+  { name: 'Edinburgh EICC',     city: 'Edinburgh EH3',   note: 'International conference centre' },
+]
 
 export default async function UKRegionPage() {
   const supabase = await createClient()
-  const { data: products } = await supabase
+  const { data: raw } = await supabase
     .from('products').select('*, categories(*)')
     .eq('is_active', true).contains('available_regions', ['UK'])
     .eq('is_featured', true).limit(6)
-  const { data: venues } = await supabase
-    .from('venues').select('*').eq('region', 'UK').order('name')
 
-  const ukVenues = [
-    { name: 'ExCeL London',              city: 'London E16',    note: 'Largest exhibition centre in London' },
-    { name: 'Olympia London',            city: 'Hammersmith W14', note: 'Historic West London venue' },
-    { name: 'NEC Birmingham',            city: 'Birmingham B40', note: "UK's largest convention complex" },
-    { name: 'Manchester Central',        city: 'Manchester M2',  note: 'City centre venue' },
-    { name: 'SEC Glasgow',               city: 'Glasgow G3',     note: 'Scottish Event Campus' },
-    { name: 'Edinburgh EICC',            city: 'Edinburgh EH3',  note: 'International conference centre' },
-  ]
+  const products = normaliseProducts(raw || []) as (Product & { categories: Category })[]
 
   return (
     <>
@@ -46,7 +49,7 @@ export default async function UKRegionPage() {
               </div>
             </div>
             <p className="text-white/60 text-base max-w-2xl leading-relaxed mb-8">
-              Exhibition booth rental across England, Scotland and Wales. UKCA-marked equipment, UK VAT invoicing, BS EN compliant materials — at ExCeL, NEC, Olympia and every major UK venue.
+              Exhibition booth rental across England, Scotland and Wales. UKCA-marked equipment, UK VAT invoicing, BS EN compliant materials.
             </p>
             <div className="flex flex-wrap gap-2">
               {['UKCA Marked', 'UK VAT Invoice', 'BS EN Standards', 'UK GDPR', 'Pricing in GBP'].map(tag => (
@@ -69,13 +72,15 @@ export default async function UKRegionPage() {
             ))}
           </div>
 
-          <p className="section-label">Featured Products</p>
-          <h2 className="section-title mb-8">Available Across UK</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-            {(products as (Product & { categories: Category })[])?.map(p => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
+          {products.length > 0 && (
+            <>
+              <p className="section-label">Featured Products</p>
+              <h2 className="section-title mb-8">Available Across UK</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+                {products.map(p => <ProductCard key={p.id} product={p} />)}
+              </div>
+            </>
+          )}
           <div className="text-center">
             <Link href="/products?region=UK" className="btn-primary px-8 py-3.5">Browse All UK Products</Link>
           </div>
