@@ -17,7 +17,7 @@ export function generateOrderNumber(): string {
 
 export function formatDate(date: string | Date, locale = 'en-GB'): string {
   return new Date(date).toLocaleDateString(locale, {
-    day: '2-digit', month: 'short', year: 'numeric'
+    day: '2-digit', month: 'short', year: 'numeric',
   })
 }
 
@@ -26,19 +26,22 @@ export function truncate(text: string, length: number): string {
   return text.slice(0, length) + '...'
 }
 
-
 /**
- * Supabase returns joined relations as arrays even for single-row joins.
- * This normalises `categories` (and optionally `venues`) to a single object.
+ * Supabase returns joined relations as arrays even for single-row foreign keys.
+ * This normalises them to single objects so they match our component types.
  */
-export function normaliseProduct<T extends { categories?: unknown; venues?: unknown }>(p: T) {
+export function normaliseProduct<T extends Record<string, unknown>>(p: T): T {
   return {
     ...p,
-    categories: Array.isArray(p.categories) ? p.categories[0] ?? null : p.categories,
-    venues:     Array.isArray(p.venues)     ? p.venues[0]     ?? null : p.venues,
+    categories: Array.isArray(p.categories)
+      ? (p.categories[0] ?? null)
+      : (p.categories ?? null),
+    venues: Array.isArray(p.venues)
+      ? (p.venues[0] ?? null)
+      : (p.venues ?? null),
   }
 }
 
-export function normaliseProducts<T extends { categories?: unknown }>(rows: T[]) {
+export function normaliseProducts<T extends Record<string, unknown>>(rows: T[]): T[] {
   return rows.map(normaliseProduct)
 }

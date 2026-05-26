@@ -1,14 +1,17 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { CartItemWithProduct } from '@/types/database'
+import type { CartItem, Product, Category } from '@/types/database'
 import toast from 'react-hot-toast'
+
+// Local type — products and categories normalised to single objects
+export type CartItemWithProduct = CartItem & {
+  products: Product & { categories: Category | null }
+}
 
 export function useCart(userId?: string) {
   const [items,   setItems]   = useState<CartItemWithProduct[]>([])
   const [loading, setLoading] = useState(false)
-
-  // Stable Supabase instance
   const supabase = useMemo(() => createClient(), [])
 
   const fetchCart = useCallback(async () => {
@@ -19,7 +22,21 @@ export function useCart(userId?: string) {
       .select('*, products(*, categories(*))')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-    setItems((data as CartItemWithProduct[]) ?? [])
+
+    // Supabase returns joined relations as arrays — normalise to single objects
+    const normalised: CartItemWithProduct[] = (data || []).map((item: any) => ({
+      ...item,
+      products: {
+        ...(Array.isArray(item.products) ? item.products[0] : item.products),
+        categories: (() => {
+          const p = Array.isArray(item.products) ? item.products[0] : item.products
+          if (!p) return null
+          return Array.isArray(p.categories) ? (p.categories[0] ?? null) : p.categories
+        })(),
+      },
+    }))
+
+    setItems(normalised)
     setLoading(false)
   }, [userId, supabase])
 

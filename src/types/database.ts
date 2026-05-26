@@ -324,7 +324,6 @@ export type QuoteItem = Database['public']['Tables']['quote_items']['Row']
 
 // ── Extended types with joins ─────────────────────────────────────────────────
 export type ProductWithCategory  = Product & { categories: Category }
-export type CartItemWithProduct  = CartItem & { products: Product & { categories: Category } }
 export type OrderWithItems       = Order & {
   order_items: (OrderItem & { products: Product })[]
   venues: Venue | null

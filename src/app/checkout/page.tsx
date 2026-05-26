@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight, Lock } from 'lucide-react'
@@ -8,7 +8,7 @@ import { useCart } from '@/hooks/useCart'
 import { useRegion } from '@/hooks/useRegion'
 import {
   formatPrice, getPriceForCurrency,
-  TAX_RATES, TAX_LABELS, CURRENCY_SYMBOLS
+  TAX_RATES, TAX_LABELS, CURRENCY_SYMBOLS,
 } from '@/lib/utils/currency'
 import { REGION_FLAGS, REGION_LABELS } from '@/lib/utils/regions'
 import RegionBar from '@/components/region/RegionBar'
@@ -23,28 +23,40 @@ type Step = 'details' | 'event' | 'review'
 export default function CheckoutPage() {
   const { user, profile } = useAuth()
   const { items, clearCart } = useCart(user?.id)
-  const { currency, region } = useRegion()
-  const router = useRouter()
-  const [step, setStep] = useState<Step>('details')
+  const { currency, region }  = useRegion()
+  const router    = useRouter()
+  const [step,       setStep]       = useState<Step>('details')
   const [submitting, setSubmitting] = useState(false)
 
   const [billing, setBilling] = useState({
-    name: profile?.full_name || '',
-    company: profile?.company_name || '',
-    email: user?.email || '',
-    phone: profile?.phone || '',
-    vat_number: profile?.company_vat || '',
-    gstin: profile?.company_gstin || '',
+    name: '', company: '', email: '', phone: '',
+    vat_number: '', gstin: '',
   })
   const [event, setEvent] = useState({
-    event_name: '', event_date: '', venue_id: '', delivery_notes: ''
+    event_name: '', event_date: '', venue_id: '', delivery_notes: '',
   })
 
-  const taxInfo = TAX_RATES[region]
+  // Sync profile into billing once loaded
+  useEffect(() => {
+    if (profile || user) {
+      setBilling(b => ({
+        name:       b.name       || profile?.full_name       || '',
+        company:    b.company    || profile?.company_name    || '',
+        email:      b.email      || user?.email              || '',
+        phone:      b.phone      || profile?.phone           || '',
+        vat_number: b.vat_number || profile?.company_vat     || '',
+        gstin:      b.gstin      || profile?.company_gstin   || '',
+      }))
+    }
+  }, [profile, user])
+
+  const taxInfo  = TAX_RATES[region]
   const taxLabel = TAX_LABELS[region]
-  const subtotal = items.reduce((s, i) => s + getPriceForCurrency(i.products, currency) * i.quantity, 0)
+  const subtotal = items.reduce(
+    (s, i) => s + getPriceForCurrency(i.products, currency) * i.quantity, 0
+  )
   const taxAmt = subtotal * taxInfo.rate
-  const total = subtotal + taxAmt
+  const total  = subtotal + taxAmt
 
   const handleSubmit = async () => {
     setSubmitting(true)
@@ -54,10 +66,10 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           billing,
-          event_name: event.event_name,
-          event_date: event.event_date || null,
-          venue_id: event.venue_id || null,
-          delivery_notes: event.delivery_notes,
+          event_name:     event.event_name     || null,
+          event_date:     event.event_date     || null,
+          venue_id:       event.venue_id       || null,
+          delivery_notes: event.delivery_notes || null,
           region,
         }),
       })
@@ -72,9 +84,11 @@ export default function CheckoutPage() {
 
   const steps: { id: Step; label: string }[] = [
     { id: 'details', label: 'Billing Details' },
-    { id: 'event', label: 'Event Info' },
-    { id: 'review', label: 'Review & Place' },
+    { id: 'event',   label: 'Event Info' },
+    { id: 'review',  label: 'Review & Place' },
   ]
+
+  const stepIndex = steps.findIndex(s => s.id === step)
 
   return (
     <>
@@ -83,22 +97,25 @@ export default function CheckoutPage() {
         <div className="max-w-[1280px] mx-auto">
           <h1 className="font-display font-extrabold text-3xl text-navy mb-2">Checkout</h1>
           <p className="text-[#6B6B6B] text-sm mb-8">
-            {REGION_FLAGS[region]} {REGION_LABELS[region]} · Prices in {CURRENCY_SYMBOLS[currency]}
+            {REGION_FLAGS[region as Region]} {REGION_LABELS[region as Region]}
+            &nbsp;· Prices in {CURRENCY_SYMBOLS[currency]}
           </p>
 
-          {/* Step indicator */}
+          {/* Stepper */}
           <div className="flex items-center gap-2 mb-10">
             {steps.map((s, i) => (
               <div key={s.id} className="flex items-center gap-2">
                 <button
-                  onClick={() => { if (i < steps.findIndex(x => x.id === step)) setStep(s.id) }}
+                  onClick={() => { if (i < stepIndex) setStep(s.id) }}
                   className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-                    s.id === step ? 'text-navy' : i < steps.findIndex(x => x.id === step) ? 'text-gold cursor-pointer' : 'text-[#6B6B6B]'
+                    s.id === step   ? 'text-navy'
+                    : i < stepIndex ? 'text-gold cursor-pointer'
+                    : 'text-[#6B6B6B]'
                   }`}
                 >
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                    s.id === step ? 'bg-navy text-white border-navy'
-                    : i < steps.findIndex(x => x.id === step) ? 'bg-gold text-white border-gold'
+                    s.id === step   ? 'bg-navy text-white border-navy'
+                    : i < stepIndex ? 'bg-gold text-white border-gold'
                     : 'border-[#DDD8CF] text-[#6B6B6B]'
                   }`}>{i + 1}</span>
                   {s.label}
@@ -109,10 +126,9 @@ export default function CheckoutPage() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-10">
-            {/* Form */}
             <div className="lg:col-span-2">
 
-              {/* Step 1: Billing */}
+              {/* Step 1 — Billing */}
               {step === 'details' && (
                 <div className="card p-7">
                   <h2 className="font-display font-bold text-navy text-lg mb-6">Billing Details</h2>
@@ -170,7 +186,7 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Step 2: Event Info */}
+              {/* Step 2 — Event */}
               {step === 'event' && (
                 <div className="card p-7">
                   <h2 className="font-display font-bold text-navy text-lg mb-6">Event Information</h2>
@@ -190,7 +206,7 @@ export default function CheckoutPage() {
                       <label className="label">Delivery / Special Instructions</label>
                       <textarea className="input min-h-[100px] resize-y" value={event.delivery_notes}
                         onChange={e => setEvent(v => ({ ...v, delivery_notes: e.target.value }))}
-                        placeholder="Booth number, load-in time, special requirements..." />
+                        placeholder="Booth number, load-in time, special requirements…" />
                     </div>
                   </div>
                   <div className="mt-7 flex gap-3 justify-end">
@@ -200,31 +216,34 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Step 3: Review */}
+              {/* Step 3 — Review */}
               {step === 'review' && (
                 <div className="card p-7">
                   <h2 className="font-display font-bold text-navy text-lg mb-6">Review Your Order</h2>
 
-                  {/* Billing summary */}
                   <div className="bg-cream rounded-lg p-4 mb-5">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#6B6B6B] mb-2">Billing</p>
-                    <p className="text-sm text-navy font-medium">{billing.name} {billing.company && `— ${billing.company}`}</p>
-                    <p className="text-sm text-[#6B6B6B]">{billing.email} · {billing.phone}</p>
+                    <p className="text-sm text-navy font-medium">
+                      {billing.name}{billing.company && ` — ${billing.company}`}
+                    </p>
+                    <p className="text-sm text-[#6B6B6B]">{billing.email}{billing.phone && ` · ${billing.phone}`}</p>
                     {billing.vat_number && <p className="text-sm text-[#6B6B6B]">VAT: {billing.vat_number}</p>}
-                    {billing.gstin && <p className="text-sm text-[#6B6B6B]">GSTIN: {billing.gstin}</p>}
+                    {billing.gstin      && <p className="text-sm text-[#6B6B6B]">GSTIN: {billing.gstin}</p>}
                   </div>
 
-                  {/* Event summary */}
                   {event.event_name && (
                     <div className="bg-cream rounded-lg p-4 mb-5">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#6B6B6B] mb-2">Event</p>
                       <p className="text-sm text-navy font-medium">{event.event_name}</p>
-                      {event.event_date && <p className="text-sm text-[#6B6B6B]">{new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>}
+                      {event.event_date && (
+                        <p className="text-sm text-[#6B6B6B]">
+                          {new Date(event.event_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </p>
+                      )}
                       {event.delivery_notes && <p className="text-sm text-[#6B6B6B] mt-1">{event.delivery_notes}</p>}
                     </div>
                   )}
 
-                  {/* Items */}
                   <div className="border border-[#DDD8CF] rounded-lg overflow-hidden mb-5">
                     {items.map(item => (
                       <div key={item.id} className="flex items-center justify-between px-4 py-3 border-b border-cream-dark last:border-0 text-sm">
@@ -242,7 +261,7 @@ export default function CheckoutPage() {
                   <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
                     <Lock size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
                     <p className="text-[12.5px] text-blue-800">
-                      Your order is protected. Secure payment processing. {region === 'IN' ? 'GST invoice' : 'VAT invoice'} will be sent to {billing.email}.
+                      Secure checkout. {region === 'IN' ? 'GST' : 'VAT'} invoice sent to {billing.email}.
                     </p>
                   </div>
 
@@ -251,7 +270,7 @@ export default function CheckoutPage() {
                     <button onClick={handleSubmit} disabled={submitting}
                       className="btn-primary px-10 py-3 disabled:opacity-60 flex items-center gap-2">
                       <Lock size={15} />
-                      {submitting ? 'Placing Order...' : 'Place Order'}
+                      {submitting ? 'Placing Order…' : 'Place Order'}
                     </button>
                   </div>
                 </div>
@@ -266,8 +285,13 @@ export default function CheckoutPage() {
                   const price = getPriceForCurrency(item.products, currency)
                   return (
                     <div key={item.id} className="flex justify-between items-start text-sm gap-3">
-                      <span className="text-[#6B6B6B] flex-1 leading-snug">{item.products.name} <span className="text-[11px]">×{item.quantity}</span></span>
-                      <span className="font-medium text-navy whitespace-nowrap">{formatPrice(price * item.quantity, currency)}</span>
+                      <span className="text-[#6B6B6B] flex-1 leading-snug">
+                        {item.products.name}
+                        <span className="text-[11px] ml-1">×{item.quantity}</span>
+                      </span>
+                      <span className="font-medium text-navy whitespace-nowrap">
+                        {formatPrice(price * item.quantity, currency)}
+                      </span>
                     </div>
                   )
                 })}
@@ -281,13 +305,13 @@ export default function CheckoutPage() {
                   <span>{taxInfo.label}</span>
                   <span className="text-navy font-medium">+{formatPrice(taxAmt, currency)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-navy text-base border-t border-[#DDD8CF] pt-2 mt-2">
+                <div className="flex justify-between font-bold text-navy text-base border-t border-[#DDD8CF] pt-2">
                   <span>Total</span>
                   <span>{formatPrice(total, currency)}</span>
                 </div>
               </div>
               <p className="text-[11.5px] text-[#6B6B6B] mt-4 leading-relaxed">
-                Delivery, installation and breakdown are included. A {region === 'IN' ? 'GST' : 'VAT'} invoice will be issued on confirmation.
+                Delivery, installation and breakdown included.
               </p>
             </div>
           </div>
