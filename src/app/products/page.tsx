@@ -53,7 +53,7 @@ export default async function ProductsPage({
 
   const { data: raw, count } = await query.range(offset, offset + limit - 1)
 
-  const products = normaliseProducts(raw || []) as (Product & { categories: Category })[]
+  const products = normaliseProducts(raw || []) as unknown as (Product & { categories: Category })[]
 
   const { data: categories } = await supabase
     .from('categories').select('*').order('sort_order')

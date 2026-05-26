@@ -41,7 +41,7 @@ export default async function ProductPage({
 
   if (!raw) notFound()
 
-  const product = normaliseProduct(raw) as Product & { categories: Category }
+  const product = normaliseProduct(raw) as unknown as Product & { categories: Category }
 
   const { data: relatedRaw } = await supabase
     .from('products')
@@ -51,7 +51,7 @@ export default async function ProductPage({
     .neq('id', product.id)
     .limit(3)
 
-  const related = normaliseProducts(relatedRaw || []) as (Product & { categories: Category })[]
+  const related = normaliseProducts(relatedRaw || []) as unknown as (Product & { categories: Category })[]
 
   const { data: venues } = product.available_venues?.length
     ? await supabase.from('venues').select('*').in('id', product.available_venues)

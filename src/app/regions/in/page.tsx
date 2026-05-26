@@ -34,7 +34,7 @@ export default async function IndiaRegionPage() {
     .eq('is_active', true).contains('available_regions', ['IN'])
     .eq('is_featured', true).limit(6)
 
-  const products = normaliseProducts(raw || []) as (Product & { categories: Category })[]
+  const products = normaliseProducts(raw || []) as unknown as (Product & { categories: Category })[]
 
   return (
     <>

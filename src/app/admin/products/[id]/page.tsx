@@ -25,7 +25,7 @@ export default async function EditProductPage({
 
   if (!raw) notFound()
 
-  const product = normaliseProduct(raw) as Product & { categories: Category | null }
+  const product = normaliseProduct(raw) as unknown as Product & { categories: Category | null }
 
   return (
     <div>

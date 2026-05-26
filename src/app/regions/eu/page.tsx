@@ -32,7 +32,7 @@ export default async function EURegionPage() {
     .eq('is_active', true).contains('available_regions', ['EU'])
     .eq('is_featured', true).limit(6)
 
-  const products = normaliseProducts(raw || []) as (Product & { categories: Category })[]
+  const products = normaliseProducts(raw || []) as unknown as (Product & { categories: Category })[]
 
   return (
     <>

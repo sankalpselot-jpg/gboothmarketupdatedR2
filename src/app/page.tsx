@@ -37,7 +37,7 @@ export default async function HomePage() {
   const featuredProducts = (featuredRaw || []).map(p => ({
     ...p,
     categories: Array.isArray(p.categories) ? p.categories[0] : p.categories,
-  })) as (Product & { categories: Category })[]
+  })) as unknown as (Product & { categories: Category })[]
 
   return (
     <>

@@ -38,7 +38,7 @@ export default function WishlistPage() {
         const normalised = (data || []).map(p => ({
           ...p,
           categories: Array.isArray(p.categories) ? (p.categories[0] ?? null) : p.categories,
-        })) as ProductWithCat[]
+        })) as unknown as ProductWithCat[]
         setProducts(normalised)
         setLoading(false)
       })
