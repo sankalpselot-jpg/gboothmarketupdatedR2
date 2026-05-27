@@ -48,7 +48,7 @@ export default function ProfilePage() {
   }
 
   const handleRegionChange = (r: Region) => {
-    setForm(f => ({ ...f, region: r, preferred_currency: REGION_CURRENCIES[r] }))
+    setForm(f => ({ ...f, region: r, preferred_currency: REGION_CURRENCIES[r] as Currency }))
   }
 
   return (
