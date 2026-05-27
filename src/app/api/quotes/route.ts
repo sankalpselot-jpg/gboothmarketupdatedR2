@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }                        from '@/lib/supabase/server'
 import { createAdminClient, createAdminClientUntyped } from '@/lib/supabase/admin'
-import type { Region } from '@/types/database'
+import type { Region, Currency } from '@/types/database'
 import { REGION_CURRENCIES } from '@/lib/utils/currency'
 
 export async function GET(req: NextRequest) {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   if (!validRegions.includes(region as Region))
     return NextResponse.json({ error: 'Invalid region' }, { status: 400 })
 
-  const currency = REGION_CURRENCIES[region as Region]
+  const currency = REGION_CURRENCIES[region as Region] as Currency
 
   // Use untyped client for insert
   const db = createAdminClientUntyped()

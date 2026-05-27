@@ -16,7 +16,7 @@ export const useRegion = create<RegionStore>()(
     (set) => ({
       region: 'EU',
       currency: 'EUR',
-      setRegion: (region) => set({ region, currency: REGION_CURRENCIES[region] }),
+      setRegion: (region) => set({ region, currency: REGION_CURRENCIES[region] as Currency }),
       setCurrency: (currency) => set({ currency }),
     }),
     { name: 'boothmarket-region' }

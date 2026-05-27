@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
   if (!cartItems?.length)
     return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
 
-  const currency: Currency = REGION_CURRENCIES[region as Region]
-  const taxRate             = TAX_RATES[region as Region].rate
+  const currency: Currency = REGION_CURRENCIES[region as Region] as Currency
+  const taxRate             = (TAX_RATES[region as Region] ?? TAX_RATES['EU']).rate
 
   const subtotal  = cartItems.reduce((sum, item) =>
     sum + getPriceForCurrency(item.products as any, currency) * item.quantity, 0)
