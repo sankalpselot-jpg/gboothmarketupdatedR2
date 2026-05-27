@@ -22,6 +22,7 @@ export interface Database {
           region: Region | null
           preferred_currency: Currency
           role: UserRole
+          user_type: string
           created_at: string
           updated_at: string
         }
@@ -36,6 +37,7 @@ export interface Database {
           region?: Region | null
           preferred_currency?: Currency
           role?: UserRole
+          user_type?: string
         }
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>
       }
