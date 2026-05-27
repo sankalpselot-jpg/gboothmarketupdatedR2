@@ -328,3 +328,194 @@ export type OrderWithItems       = Order & {
   order_items: (OrderItem & { products: Product })[]
   venues: Venue | null
 }
+
+// ── MARKETPLACE TYPES ────────────────────────────────────────────────────────
+
+export type UserType = 'consultant' | 'vendor' | 'admin'
+
+export type VendorOrderStatus =
+  | 'pending' | 'confirmed' | 'in_progress'
+  | 'delivered' | 'completed' | 'cancelled'
+
+export type ProjectStatus =
+  | 'draft' | 'active' | 'ordered' | 'completed' | 'cancelled'
+
+export type EmergencyStatus = 'open' | 'fulfilled' | 'expired' | 'cancelled'
+export type PayoutStatus    = 'pending' | 'processing' | 'paid' | 'failed'
+
+export interface VendorProfile {
+  id:                string
+  user_id:           string
+  company_name:      string
+  description:       string | null
+  logo_url:          string | null
+  website:           string | null
+  phone:             string | null
+  regions:           Region[]
+  categories:        string[]
+  is_verified:       boolean
+  is_active:         boolean
+  onboarding_done:   boolean
+  gstin:             string | null
+  vat_number:        string | null
+  bank_account_name: string | null
+  bank_account_no:   string | null
+  bank_ifsc:         string | null
+  created_at:        string
+  updated_at:        string
+}
+
+export interface VendorProduct {
+  id:               string
+  vendor_id:        string
+  name:             string
+  slug:             string
+  description:      string | null
+  category:         string | null
+  price_per_day:    number
+  currency:         Currency
+  regions:          Region[]
+  dimensions:       string | null
+  weight_kg:        number | null
+  total_stock:      number
+  available_stock:  number
+  min_rental_days:  number
+  max_rental_days:  number
+  is_active:        boolean
+  is_featured:      boolean
+  badge:            string | null
+  tags:             string[]
+  created_at:       string
+  updated_at:       string
+}
+
+export interface ProductImage {
+  id:         string
+  product_id: string
+  url:        string
+  filename:   string
+  size_bytes: number
+  sort_order: number
+  is_primary: boolean
+  created_at: string
+}
+
+export interface ProductAvailability {
+  id:         string
+  product_id: string
+  date:       string
+  stock:      number
+  is_blocked: boolean
+  note:       string | null
+  created_at: string
+}
+
+export interface Project {
+  id:             string
+  consultant_id:  string
+  name:           string
+  description:    string | null
+  event_name:     string | null
+  venue:          string | null
+  city:           string | null
+  region:         Region | null
+  start_date:     string | null
+  end_date:       string | null
+  budget:         number | null
+  currency:       Currency
+  status:         ProjectStatus
+  created_at:     string
+  updated_at:     string
+}
+
+export interface ProjectItem {
+  id:                string
+  project_id:        string
+  vendor_product_id: string
+  vendor_id:         string
+  quantity:          number
+  days:              number
+  unit_price:        number
+  total_price:       number
+  notes:             string | null
+  created_at:        string
+}
+
+export interface VendorOrder {
+  id:               string
+  order_number:     string
+  project_id:       string
+  consultant_id:    string
+  vendor_id:        string
+  status:           VendorOrderStatus
+  subtotal:         number
+  tax_amount:       number
+  total:            number
+  currency:         Currency
+  delivery_address: string | null
+  delivery_date:    string | null
+  notes:            string | null
+  vendor_notes:     string | null
+  created_at:       string
+  updated_at:       string
+}
+
+export interface VendorOrderItem {
+  id:                string
+  vendor_order_id:   string
+  vendor_product_id: string | null
+  product_name:      string
+  quantity:          number
+  days:              number
+  unit_price:        number
+  total_price:       number
+  created_at:        string
+}
+
+export interface EmergencyRequest {
+  id:            string
+  consultant_id: string
+  title:         string
+  description:   string | null
+  category:      string | null
+  quantity:      number
+  required_date: string
+  venue:         string | null
+  city:          string | null
+  region:        Region | null
+  budget:        number | null
+  currency:      Currency
+  status:        EmergencyStatus
+  fulfilled_by:  string | null
+  expires_at:    string
+  created_at:    string
+}
+
+export interface EmergencyResponse {
+  id:                   string
+  emergency_request_id: string
+  vendor_id:            string
+  message:              string | null
+  quoted_price:         number | null
+  can_fulfill:          boolean
+  created_at:           string
+}
+
+export interface Payout {
+  id:              string
+  vendor_id:       string
+  vendor_order_id: string | null
+  amount:          number
+  currency:        Currency
+  status:          PayoutStatus
+  payout_date:     string | null
+  reference:       string | null
+  notes:           string | null
+  created_at:      string
+}
+
+// Extended types with joins
+export type VendorProductWithImages  = VendorProduct & { product_images: ProductImage[] }
+export type VendorProductWithVendor  = VendorProduct & { vendor_profiles: VendorProfile }
+export type ProjectWithItems         = Project & { project_items: (ProjectItem & { vendor_products: VendorProduct & { vendor_profiles: VendorProfile } })[] }
+export type VendorOrderWithItems     = VendorOrder & { vendor_order_items: VendorOrderItem[] }

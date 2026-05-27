@@ -21,22 +21,52 @@ export async function updateSession(request: NextRequest) {
   })
 
   const { data: { user } } = await supabase.auth.getUser()
+  const path = request.nextUrl.pathname
 
-  const protectedPaths = ['/dashboard', '/checkout', '/cart']
-  const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p))
-  if (isProtected && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    url.searchParams.set('redirectTo', request.nextUrl.pathname)
-    return NextResponse.redirect(url)
+  // ── Auth required routes ──────────────────────────────────
+  const requiresAuth = ['/dashboard', '/projects', '/vendor', '/cart', '/checkout']
+  const needsAuth = requiresAuth.some(p => path.startsWith(p))
+
+  if (needsAuth && !user) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = '/login'
+    loginUrl.searchParams.set('redirectTo', path)
+    return NextResponse.redirect(loginUrl)
   }
 
-  const authPaths = ['/login', '/register']
-  const isAuthPage = authPaths.some(p => request.nextUrl.pathname.startsWith(p))
-  if (isAuthPage && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+  // ── Role-based protection (only if logged in) ─────────────
+  if (user && needsAuth) {
+    const { data: profile } = await supabase
+      .from('profiles').select('user_type').eq('id', user.id).single()
+
+    const userType = profile?.user_type
+
+    // Vendor routes → vendors and admins only
+    if (path.startsWith('/vendor') && userType !== 'vendor' && userType !== 'admin') {
+      return NextResponse.redirect(new URL('/projects', request.url))
+    }
+
+    // Project routes → consultants and admins only
+    if (path.startsWith('/projects') && userType !== 'consultant' && userType !== 'admin') {
+      return NextResponse.redirect(new URL('/vendor/dashboard', request.url))
+    }
+
+    // Admin routes → admin only
+    if (path.startsWith('/admin') && userType !== 'admin') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
+  // ── Redirect logged-in users away from auth pages ─────────
+  const authPages = ['/login', '/register']
+  if (authPages.includes(path) && user) {
+    const { data: profile } = await supabase
+      .from('profiles').select('user_type').eq('id', user.id).single()
+
+    if (profile?.user_type === 'vendor') {
+      return NextResponse.redirect(new URL('/vendor/dashboard', request.url))
+    }
+    return NextResponse.redirect(new URL('/projects', request.url))
   }
 
   return supabaseResponse
