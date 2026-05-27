@@ -521,3 +521,32 @@ export type VendorProductWithImages  = VendorProduct & { product_images: Product
 export type VendorProductWithVendor  = VendorProduct & { vendor_profiles: VendorProfile }
 export type ProjectWithItems         = Project & { project_items: (ProjectItem & { vendor_products: VendorProduct & { vendor_profiles: VendorProfile } })[] }
 export type VendorOrderWithItems     = VendorOrder & { vendor_order_items: VendorOrderItem[] }
+
+// ── EXCHANGE RATES & REGIONAL PRICING ───────────────────────────────────────
+
+export interface ExchangeRate {
+  id:            string
+  from_currency: string
+  to_currency:   string
+  rate:          number
+  updated_at:    string
+  updated_by:    string | null
+}
+
+export interface RegionalPricing {
+  id:            string
+  product_id:    string
+  region:        string
+  currency:      string
+  price:         number
+  is_manual:     boolean
+  exchange_rate: number | null
+  created_at:    string
+  updated_at:    string
+}
+
+export type VendorProductFull = VendorProduct & {
+  product_images:   ProductImage[]
+  regional_pricing: RegionalPricing[]
+  vendor_profiles:  VendorProfile
+}

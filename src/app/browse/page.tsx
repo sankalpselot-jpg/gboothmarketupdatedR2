@@ -1,21 +1,17 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Search, X, Filter } from 'lucide-react'
+import { Search, X, Zap, CheckCircle, Globe } from 'lucide-react'
 import Link from 'next/link'
-import type { Region } from '@/types/database'
+import { formatPrice, getRegionalPrice, getServesBadges, REGION_FLAGS, REGION_CURRENCIES } from '@/lib/utils/currency'
+import { useRegion } from '@/hooks/useRegion'
 
 const CATEGORIES = ['All','Booth Structures','Lounge Furniture','Tables & Chairs','Reception Counters','Flooring','Lighting','A/V & Electronics','Signage & Graphics']
-const REGIONS: { id: string; label: string }[] = [
-  { id: '',   label: '🌍 All Regions' },
-  { id: 'IN', label: '🇮🇳 India' },
-  { id: 'EU', label: '🇪🇺 Europe' },
-  { id: 'UK', label: '🇬🇧 UK' },
-]
-const SYM: Record<string, string> = { INR: '₹', EUR: '€', GBP: '£' }
+const REGIONS    = [{ id: '', label: '🌍 All' },{ id: 'IN', label: '🇮🇳 India' },{ id: 'EU', label: '🇪🇺 Europe' },{ id: 'UK', label: '🇬🇧 UK' },{ id: 'US', label: '🇺🇸 USA' }]
 
 export default function BrowsePage() {
   const db = useMemo(() => createClient() as any, [])
+  const { region: userRegion } = useRegion()
   const [products,  setProducts]  = useState<any[]>([])
   const [projects,  setProjects]  = useState<any[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -23,18 +19,27 @@ export default function BrowsePage() {
   const [category,  setCategory]  = useState('All')
   const [region,    setRegion]    = useState('')
   const [addingTo,  setAddingTo]  = useState<string | null>(null)
-  const [toast,     setToast]     = useState('')
+  const [toastMsg,  setToastMsg]  = useState('')
 
   useEffect(() => {
     const load = async () => {
       const [{ data: prods }, { data: { user } }] = await Promise.all([
         db.from('vendor_products')
-          .select('*, vendor_profiles(id, company_name, is_verified), product_images(*)')
+          .select('*, vendor_profiles(id, company_name, is_verified), product_images(*), regional_pricing(*)')
           .eq('is_active', true)
           .order('created_at', { ascending: false }),
         db.auth.getUser(),
       ])
-      setProducts(prods || [])
+
+      // Normalise joins
+      const normalized = (prods || []).map((p: any) => ({
+        ...p,
+        vendor_profiles: Array.isArray(p.vendor_profiles) ? p.vendor_profiles[0] : p.vendor_profiles,
+        product_images:  Array.isArray(p.product_images) ? p.product_images : [],
+        regional_pricing: Array.isArray(p.regional_pricing) ? p.regional_pricing : [],
+      }))
+      setProducts(normalized)
+
       if (user) {
         const { data: projs } = await db.from('projects')
           .select('id, name').eq('consultant_id', user.id)
@@ -47,16 +52,19 @@ export default function BrowsePage() {
     load()
   }, [db])
 
+  const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 2500) }
+
   const addToProject = async (productId: string, projectId: string, product: any) => {
     setAddingTo(productId)
-    const { data: { user } } = await db.auth.getUser()
-    const vendor = Array.isArray(product.vendor_profiles) ? product.vendor_profiles[0] : product.vendor_profiles
-
+    const vendor = product.vendor_profiles
     const { data: existing } = await db.from('project_items')
       .select('id, quantity').eq('project_id', projectId).eq('vendor_product_id', productId).single()
 
     if (existing) {
-      await db.from('project_items').update({ quantity: existing.quantity + 1, total_price: product.price_per_day * (existing.quantity + 1) }).eq('id', existing.id)
+      await db.from('project_items').update({
+        quantity: existing.quantity + 1,
+        total_price: product.price_per_day * (existing.quantity + 1),
+      }).eq('id', existing.id)
     } else {
       await db.from('project_items').insert({
         project_id: projectId, vendor_product_id: productId,
@@ -67,31 +75,32 @@ export default function BrowsePage() {
       })
     }
     setAddingTo(null)
-    setToast('Added to project!')
-    setTimeout(() => setToast(''), 2500)
+    showToast('Added to project!')
   }
 
+  // Filter by region = serves_regions contains selected region
   const filtered = products
     .filter(p => category === 'All' || p.category === category)
-    .filter(p => !region || (p.regions as string[]).includes(region))
+    .filter(p => !region || (p.serves_regions as string[] || []).includes(region) || (p.regions as string[] || []).includes(region))
     .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
+
+  const activeRegion = region || userRegion || 'IN'
 
   return (
     <div className="p-8">
-      {/* Toast */}
-      {toast && (
+      {toastMsg && (
         <div className="fixed top-6 right-6 z-50 bg-navy text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl">
-          ✓ {toast}
+          ✓ {toastMsg}
         </div>
       )}
 
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
           <h1 className="font-display font-extrabold text-2xl text-navy">Browse Products</h1>
-          <p className="text-[#6B6B6B] text-sm mt-1">Explore all vendor listings and add to your projects</p>
+          <p className="text-[#6B6B6B] text-sm mt-1">Explore vendor listings · Prices shown in your region's currency</p>
         </div>
         <Link href="/emergency" className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition-colors">
-          ⚡ Emergency Request
+          <Zap size={15} /> Emergency Request
         </Link>
       </div>
 
@@ -128,17 +137,23 @@ export default function BrowsePage() {
         <div className="text-center py-20 text-[#6B6B6B]">Loading products…</div>
       ) : filtered.length === 0 ? (
         <div className="bg-white border border-[#DDD8CF] rounded-2xl p-12 text-center">
+          <Globe size={36} className="mx-auto mb-3 text-[#DDD8CF]" />
           <p className="text-navy font-display font-bold text-lg mb-2">No products found</p>
-          <p className="text-[#6B6B6B] text-sm">Vendors haven't listed products in this category yet.</p>
+          <p className="text-[#6B6B6B] text-sm">Try a different category or region filter.</p>
         </div>
       ) : (
         <>
-          <p className="text-[13px] text-[#6B6B6B] mb-5"><strong className="text-navy">{filtered.length}</strong> products from vendors</p>
+          <p className="text-[13px] text-[#6B6B6B] mb-5">
+            <strong className="text-navy">{filtered.length}</strong> products ·
+            Prices in <strong className="text-navy">{REGION_CURRENCIES[activeRegion] || 'INR'}</strong>
+          </p>
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
             {filtered.map(product => {
-              const vendor = Array.isArray(product.vendor_profiles) ? product.vendor_profiles[0] : product.vendor_profiles
-              const imgs   = Array.isArray(product.product_images) ? product.product_images : []
+              const vendor  = product.vendor_profiles
+              const imgs    = product.product_images || []
               const primary = imgs.find((i: any) => i.is_primary) || imgs[0]
+              const { price, currency } = getRegionalPrice(product, activeRegion)
+              const serves  = product.serves_regions || product.regions || []
 
               return (
                 <div key={product.id} className="bg-white border border-[#DDD8CF] rounded-xl overflow-hidden hover:-translate-y-0.5 hover:shadow-md transition-all">
@@ -152,39 +167,46 @@ export default function BrowsePage() {
                     {product.badge && (
                       <span className="absolute top-2 left-2 text-[10px] font-bold bg-gold text-navy px-2 py-0.5 rounded uppercase">{product.badge}</span>
                     )}
-                    {(product.regions as string[]).length > 0 && (
-                      <div className="absolute bottom-2 left-2 flex gap-1">
-                        {(product.regions as string[]).map(r => (
-                          <span key={r} className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${r === 'IN' ? 'bg-orange-100 text-orange-700' : r === 'EU' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{r}</span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   <div className="p-4">
                     {product.category && <p className="text-[10px] font-semibold uppercase tracking-wide text-gold mb-1">{product.category}</p>}
                     <h3 className="font-display font-semibold text-navy text-[14px] leading-snug mb-1 line-clamp-2">{product.name}</h3>
                     {vendor && (
-                      <p className="text-[11.5px] text-[#6B6B6B] mb-2 flex items-center gap-1">
-                        by {vendor.company_name}
-                        {vendor.is_verified && <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-semibold">✓ Verified</span>}
-                      </p>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <p className="text-[11.5px] text-[#6B6B6B]">by {vendor.company_name}</p>
+                        {vendor.is_verified && (
+                          <span className="flex items-center gap-0.5 text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">
+                            <CheckCircle size={8} /> Verified
+                          </span>
+                        )}
+                      </div>
                     )}
-                    {product.dimensions && <p className="text-[11.5px] text-[#6B6B6B] mb-2">📐 {product.dimensions}</p>}
+
+                    {/* Serves badges */}
+                    {serves.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {(serves as string[]).map(r => (
+                          <span key={r} className="text-[9.5px] font-medium bg-[#F5F2EC] text-[#6B6B6B] border border-[#DDD8CF] px-1.5 py-0.5 rounded">
+                            {REGION_FLAGS[r]} {r}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between pt-3 border-t border-[#F0ECE4]">
                       <div>
-                        <span className="font-display font-bold text-navy">{SYM[product.currency]}{product.price_per_day.toLocaleString()}</span>
+                        <span className="font-display font-bold text-navy">{formatPrice(price, currency)}</span>
                         <span className="text-[11px] text-[#6B6B6B] ml-1">/day</span>
                       </div>
                       {projects.length > 0 ? (
                         <div className="relative group">
                           <button disabled={addingTo === product.id}
                             className="bg-navy text-white text-[12px] font-medium px-3 py-2 rounded-lg hover:bg-gold transition-colors disabled:opacity-60">
-                            {addingTo === product.id ? '…' : '+ Add to Project'}
+                            {addingTo === product.id ? '…' : '+ Add'}
                           </button>
-                          {/* Project picker dropdown */}
                           <div className="absolute right-0 bottom-full mb-1 bg-white border border-[#DDD8CF] rounded-xl shadow-xl p-2 min-w-[180px] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all z-20">
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6B6B6B] px-2 py-1.5">Add to project</p>
-                            {projects.map(proj => (
+                            {projects.map((proj: any) => (
                               <button key={proj.id} onClick={() => addToProject(product.id, proj.id, product)}
                                 className="w-full text-left px-3 py-2 text-[12.5px] text-navy hover:bg-[#F9F6F0] rounded-lg transition-colors truncate">
                                 {proj.name}
