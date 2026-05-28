@@ -11,7 +11,6 @@ export const ORDER_STATUSES: {
   dot:   string
 }[] = [
   { id: 'pending',       label: 'Pending',       desc: 'Awaiting vendor confirmation',  color: 'text-gray-500',   bg: 'bg-gray-100',    dot: 'bg-gray-400'   },
-  { id: 'quote_sent',    label: 'Quote Sent',     desc: 'Vendor has reviewed the order', color: 'text-blue-600',   bg: 'bg-blue-50',     dot: 'bg-blue-500'   },
   { id: 'accepted',      label: 'Accepted',       desc: 'Order confirmed by vendor',     color: 'text-indigo-600', bg: 'bg-indigo-50',   dot: 'bg-indigo-500' },
   { id: 'in_production', label: 'In Production',  desc: 'Items being prepared',          color: 'text-purple-600', bg: 'bg-purple-50',   dot: 'bg-purple-500' },
   { id: 'packed',        label: 'Packed',         desc: 'Ready for dispatch',            color: 'text-amber-600',  bg: 'bg-amber-50',    dot: 'bg-amber-500'  },

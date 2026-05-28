@@ -141,12 +141,28 @@ export default function VendorOrderDetailPage() {
             <div className="space-y-3">
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/30 mb-2">New Status</label>
-                <select value={status} onChange={e => setStatus(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white outline-none focus:border-gold/50 transition-colors cursor-pointer">
+                <div className="space-y-1.5">
                   {ORDER_STATUSES.map(s => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setStatus(s.id)}
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg border text-[12.5px] font-medium text-left transition-all ${
+                        status === s.id
+                          ? `${s.bg} ${s.color} border-transparent ring-1 ring-current`
+                          : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status === s.id ? s.dot : 'bg-white/20'}`} />
+                      <span className="flex-1">{s.label}</span>
+                      {status === s.id && (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/30 mb-2">Note (optional)</label>
