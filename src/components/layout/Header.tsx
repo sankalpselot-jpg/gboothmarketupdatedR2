@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { ShoppingCart, User, Menu, X, Heart, LogOut, FolderOpen, Store, Zap } from 'lucide-react'
+import NotificationBell from '@/components/ui/NotificationBell'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
 import { useWishlist } from '@/hooks/useWishlist'
@@ -139,6 +140,13 @@ export default function Header() {
                 </span>
               )}
             </Link>
+          )}
+
+          {/* Notifications */}
+          {user && (
+            <div className="hidden sm:block">
+              <NotificationBell />
+            </div>
           )}
 
           {/* Account dropdown */}

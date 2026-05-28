@@ -5,52 +5,62 @@ import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import OrderTimeline, { ORDER_STATUSES } from '@/components/ui/OrderTimeline'
+import type { ExtendedOrderStatus } from '@/types/database'
 
-const STATUSES = ['pending','confirmed','in_progress','delivered','completed','cancelled']
-const STATUS_STYLE: Record<string, string> = {
-  pending:     'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  confirmed:   'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  in_progress: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  delivered:   'bg-teal-500/10 text-teal-400 border-teal-500/20',
-  completed:   'bg-green-500/10 text-green-400 border-green-500/20',
-  cancelled:   'bg-red-500/10 text-red-400 border-red-500/20',
-}
-const SYM: Record<string, string> = { INR: '₹', EUR: '€', GBP: '£' }
+const SYM: Record<string, string> = { INR: '₹', EUR: '€', GBP: '£', USD: '$' }
 
 export default function VendorOrderDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const db     = useMemo(() => createClient() as any, [])
-  const [order,  setOrder]  = useState<any>(null)
-  const [status, setStatus] = useState('')
-  const [notes,  setNotes]  = useState('')
-  const [saving, setSaving] = useState(false)
+  const [order,   setOrder]   = useState<any>(null)
+  const [history, setHistory] = useState<any[]>([])
+  const [status,  setStatus]  = useState('')
+  const [note,    setNote]    = useState('')
+  const [saving,  setSaving]  = useState(false)
 
   useEffect(() => {
-    db.from('vendor_orders')
-      .select('*, vendor_order_items(*)')
-      .eq('id', params.id).single()
-      .then(({ data }: any) => {
-        if (data) { setOrder(data); setStatus(data.status); setNotes(data.vendor_notes || '') }
-      })
+    const load = async () => {
+      const [{ data: o }, { data: h }] = await Promise.all([
+        db.from('vendor_orders').select('*, vendor_order_items(*)').eq('id', params.id).single(),
+        db.from('order_status_history').select('*').eq('vendor_order_id', params.id).order('created_at', { ascending: false }),
+      ])
+      if (o) { setOrder(o); setStatus(o.status) }
+      setHistory(h || [])
+    }
+    load()
   }, [params.id, db])
 
   const handleUpdate = async () => {
     setSaving(true)
-    const { error } = await db.from('vendor_orders')
-      .update({ status, vendor_notes: notes || null })
-      .eq('id', params.id)
-    if (error) { toast.error(error.message); setSaving(false); return }
-    toast.success('Order updated')
-    router.push('/vendor/orders')
+    try {
+      const res = await fetch(`/api/vendor/orders/${params.id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ status, vendor_notes: note || null }),
+      })
+      const { error } = await res.json()
+      if (error) { toast.error(error); return }
+
+      toast.success('Order updated — consultant notified!')
+      // Reload history
+      const { data: h } = await db.from('order_status_history')
+        .select('*').eq('vendor_order_id', params.id).order('created_at', { ascending: false })
+      setHistory(h || [])
+      setOrder((o: any) => ({ ...o, status }))
+      setNote('')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!order) return <div className="p-8 text-white/30 text-sm">Loading…</div>
 
   const sym = SYM[order.currency] || '₹'
+  const cfg = ORDER_STATUSES.find(s => s.id === order.status)
 
   return (
-    <div className="p-8 text-white max-w-[860px]">
+    <div className="p-8 text-white max-w-[1000px]">
       <Link href="/vendor/orders" className="flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-6 transition-colors">
         <ArrowLeft size={15} /> All Orders
       </Link>
@@ -62,14 +72,16 @@ export default function VendorOrderDetailPage() {
             {new Date(order.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <span className={`text-[12px] font-semibold px-3 py-1.5 rounded-full border capitalize ${STATUS_STYLE[order.status] || ''}`}>
-          {order.status?.replace('_', ' ')}
-        </span>
+        {cfg && (
+          <span className={`text-[12px] font-semibold px-3 py-1.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+            {cfg.label}
+          </span>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-5">
-          {/* Items */}
+          {/* Order items */}
           <div className="bg-white/5 border border-white/8 rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-white/8 font-display font-bold text-white text-sm">Order Items</div>
             <table className="w-full text-sm">
@@ -92,7 +104,7 @@ export default function VendorOrderDetailPage() {
                 ))}
               </tbody>
             </table>
-            <div className="px-5 py-4 bg-white/3 space-y-1.5 text-sm">
+            <div className="px-5 py-4 bg-white/3 text-sm space-y-1.5">
               <div className="flex justify-between text-white/40"><span>Subtotal</span><span>{sym}{order.subtotal.toLocaleString()}</span></div>
               {order.tax_amount > 0 && <div className="flex justify-between text-white/40"><span>Tax</span><span>+{sym}{order.tax_amount.toLocaleString()}</span></div>}
               <div className="flex justify-between font-bold text-white text-base border-t border-white/10 pt-2"><span>Total</span><span>{sym}{order.total.toLocaleString()}</span></div>
@@ -104,38 +116,67 @@ export default function VendorOrderDetailPage() {
             <div className="bg-white/5 border border-white/8 rounded-xl p-5">
               <p className="font-display font-bold text-white text-sm mb-4">Delivery Details</p>
               <div className="space-y-2 text-sm">
-                {order.delivery_date && <div className="flex gap-3"><span className="text-white/30 w-28">Date</span><span className="text-white">{new Date(order.delivery_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>}
-                {order.delivery_address && <div className="flex gap-3"><span className="text-white/30 w-28">Address</span><span className="text-white">{order.delivery_address}</span></div>}
-                {order.notes && <div className="flex gap-3"><span className="text-white/30 w-28">Consultant note</span><span className="text-white">{order.notes}</span></div>}
+                {order.delivery_date && <div className="flex gap-3"><span className="text-white/30 w-24">Date</span><span className="text-white">{new Date(order.delivery_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>}
+                {order.delivery_address && <div className="flex gap-3"><span className="text-white/30 w-24">Address</span><span className="text-white">{order.delivery_address}</span></div>}
+                {order.notes && <div className="flex gap-3"><span className="text-white/30 w-24">Notes</span><span className="text-white">{order.notes}</span></div>}
               </div>
             </div>
           )}
+
+          {/* Timeline */}
+          <div className="bg-white/5 border border-white/8 rounded-xl p-6">
+            <p className="font-display font-bold text-white text-sm mb-5">Order Timeline</p>
+            <OrderTimeline
+              currentStatus={order.status as ExtendedOrderStatus}
+              history={history}
+              dark
+            />
+          </div>
         </div>
 
-        {/* Update status */}
+        {/* Update status panel */}
         <div className="space-y-4">
           <div className="bg-white/5 border border-white/8 rounded-xl p-5">
-            <p className="font-display font-bold text-white text-sm mb-4">Update Order</p>
+            <p className="font-display font-bold text-white text-sm mb-4">Update Status</p>
             <div className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/30 mb-2">Status</label>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/30 mb-2">New Status</label>
                 <select value={status} onChange={e => setStatus(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white outline-none focus:border-gold/50 transition-colors cursor-pointer">
-                  {STATUSES.map(s => (
-                    <option key={s} value={s}>{s.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
+                  {ORDER_STATUSES.map(s => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/30 mb-2">Note to Consultant</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)}
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/30 mb-2">Note (optional)</label>
+                <textarea value={note} onChange={e => setNote(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-gold/50 transition-colors resize-none min-h-[80px]"
-                  placeholder="Delivery time, instructions…" />
+                  placeholder="Add note for the consultant…" />
               </div>
-              <button onClick={handleUpdate} disabled={saving}
+              <button onClick={handleUpdate} disabled={saving || status === order.status}
                 className="w-full bg-gold hover:bg-gold-light text-navy font-bold py-3 rounded-lg transition-colors disabled:opacity-60 text-sm">
-                {saving ? 'Updating…' : 'Update Order'}
+                {saving ? 'Updating…' : 'Update & Notify Consultant'}
               </button>
+              <p className="text-[11px] text-white/25 text-center">
+                Consultant will see this update instantly
+              </p>
+            </div>
+          </div>
+
+          {/* Quick status guide */}
+          <div className="bg-white/3 border border-white/8 rounded-xl p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/30 mb-3">Status Guide</p>
+            <div className="space-y-2">
+              {ORDER_STATUSES.filter(s => s.id !== 'cancelled').map(s => (
+                <div key={s.id} className="flex items-start gap-2">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${s.dot}`} />
+                  <div>
+                    <span className="text-[12px] font-medium text-white/70">{s.label}</span>
+                    <span className="text-[11px] text-white/30 ml-1.5">— {s.desc}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

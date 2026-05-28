@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
+import PasswordInput from '@/components/ui/PasswordInput'
 import type { Region } from '@/types/database'
 import { REGION_CURRENCIES } from '@/lib/utils/currency'
 
@@ -182,10 +183,13 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="label">Password *</label>
-            <input
-              type="password" value={form.password}
+            <PasswordInput
+              value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              required minLength={8} className="input" placeholder="Min 8 characters"
+              minLength={8}
+              className="input"
+              placeholder="Min 8 characters"
+              required
             />
           </div>
           <div>

@@ -550,3 +550,33 @@ export type VendorProductFull = VendorProduct & {
   regional_pricing: RegionalPricing[]
   vendor_profiles:  VendorProfile
 }
+
+// ── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+export type NotificationType =
+  | 'new_order' | 'order_status' | 'delivery_reminder'
+  | 'pickup_reminder' | 'emergency_request' | 'system'
+
+export type ExtendedOrderStatus =
+  | 'pending' | 'quote_sent' | 'accepted' | 'in_production'
+  | 'packed' | 'in_transit' | 'delivered' | 'completed' | 'cancelled'
+
+export interface Notification {
+  id:         string
+  user_id:    string
+  type:       NotificationType
+  title:      string
+  body:       string | null
+  data:       Record<string, any>
+  is_read:    boolean
+  created_at: string
+}
+
+export interface OrderStatusHistory {
+  id:              string
+  vendor_order_id: string
+  status:          ExtendedOrderStatus
+  note:            string | null
+  changed_by:      string | null
+  created_at:      string
+}
