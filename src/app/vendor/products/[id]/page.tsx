@@ -230,6 +230,7 @@ export default function VendorProductDetailPage() {
   }
 
   const inputCls = 'w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-gold/50 transition-colors'
+  const selectCls = 'w-full bg-[#1A1D26] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white outline-none focus:border-gold/50 transition-colors cursor-pointer appearance-none'
   const labelCls = 'block text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-1.5'
 
   if (loading) return <div className="p-8 text-white/30 text-sm">Loading product…</div>
@@ -544,14 +545,14 @@ export default function VendorProductDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Category</label>
-                <select className={inputCls + ' cursor-pointer'} value={form.category || ''} onChange={e => setForm((f: any) => ({ ...f, category: e.target.value }))}>
+                <select className={selectCls} value={form.category || ''} onChange={e => setForm((f: any) => ({ ...f, category: e.target.value }))}>
                   <option value="">— Select —</option>
                   {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <label className={labelCls}>Badge</label>
-                <select className={inputCls + ' cursor-pointer'} value={form.badge || ''} onChange={e => setForm((f: any) => ({ ...f, badge: e.target.value }))}>
+                <select className={selectCls} value={form.badge || ''} onChange={e => setForm((f: any) => ({ ...f, badge: e.target.value }))}>
                   <option value="">— None —</option>
                   {['New','Popular','Featured','Best Seller','Limited'].map(b => <option key={b}>{b}</option>)}
                 </select>
@@ -585,7 +586,7 @@ export default function VendorProductDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Condition Grade</label>
-                <select className={inputCls + ' cursor-pointer'} value={form.condition_grade || ''} onChange={e => setForm((f: any) => ({ ...f, condition_grade: e.target.value }))}>
+                <select className={selectCls} value={form.condition_grade || ''} onChange={e => setForm((f: any) => ({ ...f, condition_grade: e.target.value }))}>
                   <option value="">— Select condition —</option>
                   <optgroup label="Electronics / A/V">
                     <option value="Grade A — Less than 1 year">Grade A — Less than 1 year</option>
@@ -601,7 +602,7 @@ export default function VendorProductDetailPage() {
               </div>
               <div>
                 <label className={labelCls}>Age of Inventory</label>
-                <select className={inputCls + ' cursor-pointer'} value={form.inventory_age || ''} onChange={e => setForm((f: any) => ({ ...f, inventory_age: e.target.value }))}>
+                <select className={selectCls} value={form.inventory_age || ''} onChange={e => setForm((f: any) => ({ ...f, inventory_age: e.target.value }))}>
                   <option value="">— Select age —</option>
                   <option value="Less than 6 months">Less than 6 months</option>
                   <option value="6–12 months">6–12 months</option>
@@ -698,7 +699,7 @@ export default function VendorProductDetailPage() {
               </div>
               <div>
                 <label className={labelCls}>Base Currency</label>
-                <select className={inputCls + ' cursor-pointer'} value={baseCurrency} onChange={e => setBaseCurrency(e.target.value)}>
+                <select className={selectCls} value={baseCurrency} onChange={e => setBaseCurrency(e.target.value)}>
                   {ALL_CURRENCIES.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>

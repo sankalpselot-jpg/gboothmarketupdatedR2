@@ -84,7 +84,7 @@ export default function VendorAnalyticsPage() {
         <div className="flex items-center gap-2">
           <span className="text-[12px] text-white/40">Reporting currency:</span>
           <select value={baseCurrency} onChange={e => setBaseCurrency(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-gold/50 transition-colors cursor-pointer">
+            className="bg-[#1A1D26] border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-gold/50 transition-colors cursor-pointer appearance-none">
             <option value="INR">₹ INR</option>
             <option value="EUR">€ EUR</option>
             <option value="GBP">£ GBP</option>

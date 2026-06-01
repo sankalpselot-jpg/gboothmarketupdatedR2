@@ -266,7 +266,7 @@ export default function ProjectWorkspacePage() {
                       {product.category && (
                         <p className="text-[10.5px] font-semibold uppercase tracking-wide text-gold mb-1">{product.category}</p>
                       )}
-                      <h3 className="font-display font-semibold text-navy text-[14px] leading-snug mb-1">{product.name}</h3>
+                      <Link href={`/browse/products/${product.id}`} className="font-display font-semibold text-navy text-[14px] leading-snug mb-1 hover:text-gold transition-colors block">{product.name}</Link>
                       {vendor && (
                         <p className="text-[11.5px] text-[#6B6B6B] mb-2">by {vendor.company_name}</p>
                       )}

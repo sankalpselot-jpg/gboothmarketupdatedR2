@@ -37,6 +37,7 @@ export default function NewProductPage() {
   })
 
   const inputCls = 'w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-gold/50 transition-colors'
+  const selectCls = 'w-full bg-[#1A1D26] border border-white/10 rounded-lg px-4 py-3 text-sm text-white outline-none focus:border-gold/50 transition-colors cursor-pointer appearance-none'
   const labelCls = 'block text-[11px] font-semibold uppercase tracking-wider text-white/40 mb-2'
 
   const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -164,7 +165,7 @@ export default function NewProductPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Category</label>
-                <select className={inputCls + ' cursor-pointer'} value={form.category}
+                <select className={selectCls} value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
                   <option value="">— Select category —</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -172,7 +173,7 @@ export default function NewProductPage() {
               </div>
               <div>
                 <label className={labelCls}>Badge</label>
-                <select className={inputCls + ' cursor-pointer'} value={form.badge}
+                <select className={selectCls} value={form.badge}
                   onChange={e => setForm(f => ({ ...f, badge: e.target.value }))}>
                   <option value="">— None —</option>
                   {['New', 'Popular', 'Featured', 'Best Seller', 'Limited'].map(b => <option key={b}>{b}</option>)}
@@ -237,7 +238,7 @@ export default function NewProductPage() {
             </div>
             <div>
               <label className={labelCls}>Currency</label>
-              <select className={inputCls + ' cursor-pointer'} value={form.currency}
+              <select className={selectCls} value={form.currency}
                 onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
                 {CURRENCIES.map(c => <option key={c.id} value={c.id}>{c.sym} {c.id}</option>)}
               </select>

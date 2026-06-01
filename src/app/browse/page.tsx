@@ -175,7 +175,7 @@ export default function BrowsePage() {
                   </div>
                   <div className="p-4">
                     {product.category && <p className="text-[10px] font-semibold uppercase tracking-wide text-gold mb-1">{product.category}</p>}
-                    <h3 className="font-display font-semibold text-navy text-[14px] leading-snug mb-1 line-clamp-2">{product.name}</h3>
+                    <Link href={`/browse/products/${product.id}`} className="font-display font-semibold text-navy text-[14px] leading-snug mb-1 line-clamp-2 hover:text-gold transition-colors block">{product.name}</Link>
                     {vendor && (
                       <div className="flex items-center gap-1.5 mb-2">
                         <p className="text-[11.5px] text-[#6B6B6B]">by {vendor.company_name}</p>
