@@ -99,9 +99,14 @@ export default function BrowsePage() {
           <h1 className="font-display font-extrabold text-2xl text-navy">Browse Products</h1>
           <p className="text-[#6B6B6B] text-sm mt-1">Explore vendor listings · Prices shown in your region's currency</p>
         </div>
-        <Link href="/emergency" className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition-colors">
-          <Zap size={15} /> Emergency Request
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/browse/vendors" className="flex items-center gap-2 bg-white border border-[#DDD8CF] hover:border-navy text-navy font-medium px-4 py-2.5 rounded-lg text-sm transition-colors">
+            🔍 Find Vendors on Google
+          </Link>
+          <Link href="/emergency" className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm transition-colors">
+            <Zap size={15} /> Emergency
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

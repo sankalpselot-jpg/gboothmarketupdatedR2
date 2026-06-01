@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, Package, ShoppingBag, Zap,
-  BarChart3, Wallet, LogOut, ChevronRight, Store
+  BarChart3, Wallet, LogOut, ChevronRight, Store, Shield, TrendingUp
 } from 'lucide-react'
 import { cn } from '@/lib/utils/helpers'
 import NotificationBell from '@/components/ui/NotificationBell'

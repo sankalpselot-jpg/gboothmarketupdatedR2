@@ -580,3 +580,70 @@ export interface OrderStatusHistory {
   changed_by:      string | null
   created_at:      string
 }
+
+// ── TRUST / SLA / PAYMENT TYPES ─────────────────────────────────────────────
+
+export type ConditionGrade = 'A' | 'B' | 'C' | 'New' | 'Excellent' | 'Good'
+
+export interface ProductEventHistory {
+  id:         string
+  product_id: string
+  event_name: string
+  venue:      string | null
+  city:       string | null
+  year:       number | null
+  sort_order: number
+  created_at: string
+}
+
+export interface VendorSLA {
+  id:                       string
+  vendor_id:                string
+  delivery_hours:           number
+  pickup_hours:             number
+  support_response_hours:   number
+  replacement_hours:        number
+  onsite_support_available: boolean
+  onsite_support_note:      string | null
+  created_at:               string
+  updated_at:               string
+}
+
+export interface VendorMetrics {
+  id:                      string
+  vendor_id:               string
+  total_orders:            number
+  on_time_delivery_pct:    number
+  on_time_pickup_pct:      number
+  avg_response_hours:      number
+  replacement_success_pct: number
+  avg_rating:              number
+  updated_at:              string
+}
+
+export interface PaymentTerms {
+  id:                  string
+  consultant_id:       string
+  credit_limit:        number
+  net_days:            number
+  deposit_pct:         number
+  approved_buyer:      boolean
+  successful_projects: number
+  notes:               string | null
+  approved_by:         string | null
+  approved_at:         string | null
+  created_at:          string
+  updated_at:          string
+}
+
+export interface CreditApplication {
+  id:              string
+  consultant_id:   string
+  status:          'pending' | 'approved' | 'rejected'
+  requested_limit: number | null
+  requested_net:   number | null
+  notes:           string | null
+  reviewed_by:     string | null
+  reviewed_at:     string | null
+  created_at:      string
+}

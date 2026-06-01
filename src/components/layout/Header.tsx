@@ -87,7 +87,10 @@ export default function Header() {
                 <FolderOpen size={14} className="text-gold" /> My Projects
               </Link>
               <Link href="/browse" className="text-sm text-[#1A1A1A] px-3.5 py-2 rounded hover:bg-cream transition-colors">
-                Browse Vendors
+                Browse Products
+              </Link>
+              <Link href="/browse/vendors" className="text-sm text-[#1A1A1A] px-3.5 py-2 rounded hover:bg-cream transition-colors">
+                Find Vendors
               </Link>
               <Link href="/emergency" className="flex items-center gap-1.5 text-sm text-red-600 px-3.5 py-2 rounded hover:bg-red-50 transition-colors">
                 <Zap size={13} /> Emergency

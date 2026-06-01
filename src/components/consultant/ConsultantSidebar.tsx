@@ -4,13 +4,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   FolderOpen, Search, Zap, ShoppingBag,
-  User, LogOut, ChevronRight, LayoutDashboard
+  User, LogOut, ChevronRight, LayoutDashboard, MapPin
 } from 'lucide-react'
 import { cn } from '@/lib/utils/helpers'
 
 const navItems = [
   { href: '/projects',          label: 'My Projects',    icon: FolderOpen },
   { href: '/browse',            label: 'Browse Products', icon: Search },
+  { href: '/browse/vendors',    label: 'Find Vendors',    icon: MapPin },
   { href: '/emergency',         label: 'Emergency',       icon: Zap, badge: 'URGENT' },
   { href: '/dashboard',         label: 'Account',         icon: User },
 ]
