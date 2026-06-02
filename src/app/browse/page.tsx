@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { formatPrice, getRegionalPrice, getServesBadges, REGION_FLAGS, REGION_CURRENCIES } from '@/lib/utils/currency'
 import { useRegion } from '@/hooks/useRegion'
 
-const CATEGORIES = ['All','Booth Structures','Lounge Furniture','Tables & Chairs','Reception Counters','Flooring','Lighting','A/V & Electronics','Signage & Graphics']
+const CATEGORIES = ['All','Furniture','Display & Shelving','TV & Digital Displays','Audio / Visual','Lighting','Kitchen & Catering','IT & Connectivity']
 const REGIONS    = [{ id: '', label: '🌍 All' },{ id: 'IN', label: '🇮🇳 India' },{ id: 'EU', label: '🇪🇺 Europe' },{ id: 'UK', label: '🇬🇧 UK' },{ id: 'US', label: '🇺🇸 USA' }]
 
 export default function BrowsePage() {

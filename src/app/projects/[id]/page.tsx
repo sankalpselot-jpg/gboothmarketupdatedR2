@@ -23,11 +23,7 @@ type CartItem = {
 }
 
 const SYM: Record<string, string> = { INR: '₹', EUR: '€', GBP: '£' }
-const CATEGORIES = [
-  'All','Booth Structures','Lounge Furniture','Tables & Chairs',
-  'Reception Counters','Flooring','Lighting','A/V & Electronics',
-  'Signage & Graphics',
-]
+const CATEGORIES = ['All','Furniture','Display & Shelving','TV & Digital Displays','Audio / Visual','Lighting','Kitchen & Catering','IT & Connectivity']
 
 export default function ProjectWorkspacePage() {
   const params = useParams()

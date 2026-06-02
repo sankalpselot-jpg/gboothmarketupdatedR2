@@ -4,10 +4,10 @@ const cols = [
   {
     heading: 'Products',
     links: [
-      { label: 'Booth Structures', href: '/products?category=booth-structures' },
-      { label: 'Lounge Furniture', href: '/products?category=lounge-furniture' },
-      { label: 'A/V & Electronics', href: '/products?category=av-electronics' },
-      { label: 'Flooring', href: '/products?category=flooring' },
+      { label: 'Furniture', href: '/products?category=booth-structures' },
+      { label: 'TV & Displays', href: '/products?category=lounge-furniture' },
+      { label: 'IT & Connectivity', href: '/products?category=av-electronics' },
+      { label: 'Lighting', href: '/products?category=flooring' },
       { label: 'Lighting', href: '/products?category=lighting' },
     ],
   },
@@ -56,7 +56,7 @@ export default function Footer() {
               <span className="font-display font-extrabold text-xl text-white tracking-tight">Booth<span className="text-gold">Market</span></span>
             </div>
             <p className="text-white/40 text-[13.5px] leading-relaxed max-w-[240px] mb-4">
-              B2B exhibition booth rental marketplace for Europe, UK &amp; India.
+              B2B exhibition furniture electronics rental marketplace for Europe, UK &amp; India.
             </p>
             <div className="flex flex-wrap gap-2">
               {['🇪🇺 Europe', '🇬🇧 United Kingdom', '🇮🇳 India'].map(r => (

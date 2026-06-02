@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
 
   // ── Text search for exhibition rental companies ───────────
   const searchQuery = query
-    ? `${query} exhibition booth rental`
-    : `exhibition booth rental ${city || ''}`
+    ? `${query} exhibition furniture AV rental`
+    : `exhibition furniture electronics rental ${city || ''}`
 
   const textSearchUrl = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json')
   textSearchUrl.searchParams.set('query', searchQuery)

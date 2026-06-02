@@ -17,9 +17,14 @@ import {
 
 const ALL_REGIONS    = ['EU','UK','US','IN','OTHER']
 const ALL_CURRENCIES = ['INR','EUR','GBP','USD']
-const CATEGORIES     = [
-  'Booth Structures','Lounge Furniture','Tables & Chairs','Reception Counters',
-  'Flooring','Lighting','A/V & Electronics','Signage & Graphics','Storage & Shelving','Outdoor Equipment',
+const CATEGORIES = [
+  'Furniture',
+  'Display & Shelving',
+  'TV & Digital Displays',
+  'Audio / Visual',
+  'Lighting',
+  'Kitchen & Catering',
+  'IT & Connectivity'
 ]
 
 // Condition grades by product type
@@ -27,6 +32,16 @@ const CONDITION_OPTIONS: Record<string, string[]> = {
   electronics: ['A — Less than 1 year old', 'B — 1–3 years old', 'C — Older inventory'],
   furniture:   ['New', 'Excellent', 'Good'],
   default:     ['New', 'Excellent', 'Good', 'Grade A', 'Grade B', 'Grade C'],
+}
+
+const SUBCATEGORIES: Record<string, string[]> = {
+  "Furniture":             ["Sofas & Lounge Seating","Armchairs & Ottoman Sets","Poseur / Bar Tables","Bar Stools & Chairs","Conference & Meeting Tables","Reception & Info Counters"],
+  "Display & Shelving":    ["Product Display Shelves","Showcase Cabinets & Vitrines","Plinths & Pedestals","Gridwall & Slatwall Panels"],
+  "TV & Digital Displays": ['TV Screens (32"–85")',"LED Video Walls","Touchscreen Kiosks","Digital Signage Totems"],
+  "Audio / Visual":        ["PA & Speaker Systems","Projectors & Screens","Microphones & Mixers","Conference AV"],
+  "Lighting":              ["LED Spotlights & Track Systems","Lightboxes & Backlit Panels","Neon & Ambient Lighting"],
+  "Kitchen & Catering":    ["Coffee Machines & Bean-to-Cup","Refrigerators & Bar Fridges","Water Dispensers","Catering Trolleys & Counters"],
+  "IT & Connectivity":     ["iPad & Tablet Kiosks","Laptops & Presentation PCs","Charging Stations & Power Units","Wi-Fi Routers & Networking"],
 }
 
 type RegionalPrice  = { region: string; currency: string; price: number; is_manual: boolean }

@@ -8,10 +8,24 @@ import Link from 'next/link'
 import type { Region } from '@/types/database'
 
 const CATEGORIES = [
-  'Booth Structures','Lounge Furniture','Tables & Chairs',
-  'Reception Counters','Flooring','Lighting','A/V & Electronics',
-  'Signage & Graphics','Storage & Shelving','Outdoor Equipment',
+  'Furniture',
+  'Display & Shelving',
+  'TV & Digital Displays',
+  'Audio / Visual',
+  'Lighting',
+  'Kitchen & Catering',
+  'IT & Connectivity'
 ]
+const SUBCATEGORIES: Record<string, string[]> = {
+  "Furniture":             ["Sofas & Lounge Seating","Armchairs & Ottoman Sets","Poseur / Bar Tables","Bar Stools & Chairs","Conference & Meeting Tables","Reception & Info Counters"],
+  "Display & Shelving":    ["Product Display Shelves","Showcase Cabinets & Vitrines","Plinths & Pedestals","Gridwall & Slatwall Panels"],
+  "TV & Digital Displays": ['TV Screens (32"–85")',"LED Video Walls","Touchscreen Kiosks","Digital Signage Totems"],
+  "Audio / Visual":        ["PA & Speaker Systems","Projectors & Screens","Microphones & Mixers","Conference AV"],
+  "Lighting":              ["LED Spotlights & Track Systems","Lightboxes & Backlit Panels","Neon & Ambient Lighting"],
+  "Kitchen & Catering":    ["Coffee Machines & Bean-to-Cup","Refrigerators & Bar Fridges","Water Dispensers","Catering Trolleys & Counters"],
+  "IT & Connectivity":     ["iPad & Tablet Kiosks","Laptops & Presentation PCs","Charging Stations & Power Units","Wi-Fi Routers & Networking"],
+}
+
 const CURRENCIES = [{ id: 'INR', sym: '₹' }, { id: 'EUR', sym: '€' }, { id: 'GBP', sym: '£' }]
 const REGIONS: { id: Region; label: string }[] = [
   { id: 'IN', label: '🇮🇳 India' },
@@ -104,7 +118,7 @@ export default function NewProductPage() {
       name:             form.name,
       slug:             slugify(form.name) + '-' + Date.now().toString(36),
       description:      form.description   || null,
-      category:         form.category      || null,
+      category:         form.subcategory ? `${form.category} — ${form.subcategory}` : form.category || null,
       price_per_day:    parseFloat(form.price_per_day),
       currency:         form.currency,
       regions:          form.regions,
@@ -166,11 +180,21 @@ export default function NewProductPage() {
               <div>
                 <label className={labelCls}>Category</label>
                 <select className={selectCls} value={form.category}
-                  onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
+                  onChange={e => setForm(f => ({ ...f, category: e.target.value, subcategory: '' }))}>
                   <option value="">— Select category —</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
+              {form.category && SUBCATEGORIES[form.category] && (
+                <div>
+                  <label className={labelCls}>Subcategory</label>
+                  <select className={selectCls} value={form.subcategory || ''}
+                    onChange={e => setForm(f => ({ ...f, subcategory: e.target.value }))}>
+                    <option value="">— Select subcategory —</option>
+                    {SUBCATEGORIES[form.category].map((s: string) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className={labelCls}>Badge</label>
                 <select className={selectCls} value={form.badge}

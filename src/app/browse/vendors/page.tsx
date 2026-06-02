@@ -8,16 +8,16 @@ import {
 import Link from 'next/link'
 
 const PRESET_CITIES = [
-  { label: '🇮🇳 New Delhi',    query: 'exhibition booth rental New Delhi India' },
-  { label: '🇮🇳 Mumbai',       query: 'exhibition booth rental Mumbai India' },
-  { label: '🇮🇳 Bengaluru',    query: 'exhibition booth rental Bengaluru India' },
-  { label: '🇮🇳 Hyderabad',    query: 'exhibition booth rental Hyderabad India' },
-  { label: '🇩🇪 Frankfurt',    query: 'Messebau exhibition stand rental Frankfurt Germany' },
-  { label: '🇩🇪 Düsseldorf',   query: 'exhibition stand builder rental Düsseldorf Germany' },
-  { label: '🇬🇧 London',       query: 'exhibition booth rental London UK' },
-  { label: '🇳🇱 Amsterdam',    query: 'exhibition stand rental Amsterdam Netherlands' },
-  { label: '🇫🇷 Paris',        query: 'location stand exposition Paris France' },
-  { label: '🇪🇸 Barcelona',    query: 'exhibition stand rental Barcelona Spain' },
+  { label: '🇮🇳 New Delhi',    query: 'exhibition furniture AV rental New Delhi India' },
+  { label: '🇮🇳 Mumbai',       query: 'exhibition furniture electronics rental Mumbai India' },
+  { label: '🇮🇳 Bengaluru',    query: 'exhibition furniture rental Bengaluru India' },
+  { label: '🇮🇳 Hyderabad',    query: 'exhibition AV equipment rental Hyderabad India' },
+  { label: '🇩🇪 Frankfurt',    query: 'Messeausstattung furniture AV rental Frankfurt Germany' },
+  { label: '🇩🇪 Düsseldorf',   query: 'exhibition furniture electronics rental Düsseldorf Germany' },
+  { label: '🇬🇧 London',       query: 'exhibition furniture AV equipment rental London UK' },
+  { label: '🇳🇱 Amsterdam',    query: 'exhibition furniture rental Amsterdam Netherlands' },
+  { label: '🇫🇷 Paris',        query: 'location mobilier équipement salon Paris France' },
+  { label: '🇪🇸 Barcelona',    query: 'alquiler mobiliario AV feria Barcelona Spain' },
 ]
 
 type Vendor = {

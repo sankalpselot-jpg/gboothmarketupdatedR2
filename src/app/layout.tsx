@@ -19,13 +19,13 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: 'BoothMarket — B2B Exhibition Booth Rental',
+    default: 'BoothMarket — B2B Exhibition Furniture & Electronics Rental',
     template: '%s | BoothMarket',
   },
   description:
-    'Premium B2B exhibition booth rental marketplace serving Europe, UK and India. Booths, furniture, A/V, flooring — delivered and installed.',
+    'Premium B2B exhibition furniture AV rental marketplace serving Europe, UK and India. Booths, furniture, A/V, flooring — delivered and installed.',
   keywords: [
-    'exhibition booth rental',
+    'exhibition furniture AV rental',
     'trade show furniture rental',
     'booth rental Europe',
     'exhibition stand UK',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     'Pragati Maidan booth rental',
   ],
   openGraph: {
-    title: 'BoothMarket — B2B Exhibition Booth Rental',
+    title: 'BoothMarket — B2B Exhibition Furniture & Electronics Rental',
     description: 'Premium booth rentals across Europe, UK & India',
     type: 'website',
     locale: 'en_GB',

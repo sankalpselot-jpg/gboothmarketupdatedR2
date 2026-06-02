@@ -6,9 +6,13 @@ import toast from 'react-hot-toast'
 import type { Region } from '@/types/database'
 
 const CATEGORIES = [
-  'Booth Structures', 'Lounge Furniture', 'Tables & Chairs',
-  'Reception Counters', 'Flooring', 'Lighting', 'A/V & Electronics',
-  'Signage & Graphics', 'Storage & Shelving', 'Outdoor Equipment',
+  'Furniture',
+  'Display & Shelving',
+  'TV & Digital Displays',
+  'Audio / Visual',
+  'Lighting',
+  'Kitchen & Catering',
+  'IT & Connectivity'
 ]
 
 const REGIONS: { id: Region; label: string }[] = [
