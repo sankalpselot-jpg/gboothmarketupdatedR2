@@ -565,13 +565,6 @@ export default function VendorProductDetailPage() {
                   {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
-              <div>
-                <label className={labelCls}>Badge</label>
-                <select className={selectCls} value={form.badge || ''} onChange={e => setForm((f: any) => ({ ...f, badge: e.target.value }))}>
-                  <option value="">— None —</option>
-                  {['New','Popular','Featured','Best Seller','Limited'].map(b => <option key={b}>{b}</option>)}
-                </select>
-              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

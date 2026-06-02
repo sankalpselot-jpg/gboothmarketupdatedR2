@@ -47,7 +47,7 @@ export default function NewProductPage() {
     total_stock: '1', available_stock: '1',
     min_rental_days: '1', max_rental_days: '30',
     dimensions: '', weight_kg: '',
-    tags: '', badge: '', subcategory: '',
+    tags: '', subcategory: '',
   })
 
   const inputCls = 'w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-gold/50 transition-colors'
@@ -195,14 +195,6 @@ export default function NewProductPage() {
                   </select>
                 </div>
               )}
-              <div>
-                <label className={labelCls}>Badge</label>
-                <select className={selectCls} value={form.badge}
-                  onChange={e => setForm(f => ({ ...f, badge: e.target.value }))}>
-                  <option value="">— None —</option>
-                  {['New', 'Popular', 'Featured', 'Best Seller', 'Limited'].map(b => <option key={b}>{b}</option>)}
-                </select>
-              </div>
             </div>
             <div>
               <label className={labelCls}>Tags (comma separated)</label>
