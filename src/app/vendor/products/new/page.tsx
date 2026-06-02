@@ -47,7 +47,7 @@ export default function NewProductPage() {
     total_stock: '1', available_stock: '1',
     min_rental_days: '1', max_rental_days: '30',
     dimensions: '', weight_kg: '',
-    tags: '', badge: '',
+    tags: '', badge: '', subcategory: '',
   })
 
   const inputCls = 'w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-gold/50 transition-colors'
