@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import type { SearchParams } from 'next/dist/server/request/search-params'
 
 export default async function ProductsPage({
   searchParams,
@@ -10,3 +9,4 @@ export default async function ProductsPage({
   const query  = new URLSearchParams(params).toString()
   redirect(query ? `/browse?${query}` : '/browse')
 }
+
