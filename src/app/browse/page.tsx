@@ -5,6 +5,7 @@ import { Search, X, Zap, CheckCircle, Globe } from 'lucide-react'
 import Link from 'next/link'
 import { formatPrice, getRegionalPrice, getServesBadges, REGION_FLAGS, REGION_CURRENCIES } from '@/lib/utils/currency'
 import { useRegion } from '@/hooks/useRegion'
+import { useRouter } from 'next/navigation'
 
 const CATEGORIES = ['All','Furniture','Display & Shelving','TV & Digital Displays','Audio / Visual','Lighting','Kitchen & Catering','IT & Connectivity']
 const REGIONS    = [{ id: '', label: '🌍 All' },{ id: 'IN', label: '🇮🇳 India' },{ id: 'EU', label: '🇪🇺 Europe' },{ id: 'UK', label: '🇬🇧 UK' },{ id: 'US', label: '🇺🇸 USA' }]
@@ -12,6 +13,7 @@ const REGIONS    = [{ id: '', label: '🌍 All' },{ id: 'IN', label: '🇮🇳 I
 export default function BrowsePage() {
   const db = useMemo(() => createClient() as any, [])
   const { region: userRegion } = useRegion()
+  const router = useRouter()
   const [products,  setProducts]  = useState<any[]>([])
   const [projects,  setProjects]  = useState<any[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -55,6 +57,9 @@ export default function BrowsePage() {
   const showToast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 2500) }
 
   const addToProject = async (productId: string, projectId: string, product: any) => {
+    // Require login
+    const { data: { user: authUser } } = await db.auth.getUser()
+    if (!authUser) { router.push('/login?redirectTo=/browse'); return }
     setAddingTo(productId)
     const vendor = product.vendor_profiles
     const { data: existing } = await db.from('project_items')
@@ -203,7 +208,7 @@ export default function BrowsePage() {
                         <span className="font-display font-bold text-navy">{formatPrice(price, currency)}</span>
                         <span className="text-[11px] text-[#6B6B6B] ml-1">/day</span>
                       </div>
-                      {projects.length > 0 ? (
+                      {!loading && projects.length > 0 ? (
                         <div className="relative group">
                           <button disabled={addingTo === product.id}
                             className="bg-navy text-white text-[12px] font-medium px-3 py-2 rounded-lg hover:bg-gold transition-colors disabled:opacity-60">
@@ -220,8 +225,9 @@ export default function BrowsePage() {
                           </div>
                         </div>
                       ) : (
-                        <Link href="/projects/new" className="bg-cream-dark text-navy text-[12px] font-medium px-3 py-2 rounded-lg hover:bg-[#DDD8CF] transition-colors">
-                          Create Project
+                        <Link href="/login?redirectTo=/browse"
+                          className="bg-navy text-white text-[12px] font-medium px-3 py-2 rounded-lg hover:bg-gold transition-colors">
+                          Sign in to Add
                         </Link>
                       )}
                     </div>

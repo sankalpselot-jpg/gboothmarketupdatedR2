@@ -3,11 +3,14 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ConsultantSidebar from '@/components/consultant/ConsultantSidebar'
+import Header from '@/components/layout/Header'
+import Footer from '@/components/layout/Footer'
 
 export default async function EmergencyLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+
+  if (!user) redirect('/login?redirectTo=/emergency')
 
   const { data: profile } = await supabase
     .from('profiles').select('user_type, full_name, company_name').eq('id', user.id).single()

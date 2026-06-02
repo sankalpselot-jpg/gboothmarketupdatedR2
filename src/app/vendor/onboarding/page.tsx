@@ -4,22 +4,46 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 import type { Region } from '@/types/database'
+import { CheckCircle } from 'lucide-react'
 
 const CATEGORIES = [
-  'Furniture',
-  'Display & Shelving',
-  'TV & Digital Displays',
-  'Audio / Visual',
-  'Lighting',
-  'Kitchen & Catering',
-  'IT & Connectivity'
+  'Furniture','Display & Shelving','TV & Digital Displays',
+  'Audio / Visual','Lighting','Kitchen & Catering','IT & Connectivity',
 ]
 
-const REGIONS: { id: Region; label: string }[] = [
-  { id: 'IN', label: '🇮🇳 India' },
-  { id: 'EU', label: '🇪🇺 Europe' },
-  { id: 'UK', label: '🇬🇧 United Kingdom' },
+const REGIONS: { id: Region; label: string; flag: string }[] = [
+  { id: 'IN', label: 'India',          flag: '🇮🇳' },
+  { id: 'EU', label: 'Europe (EU)',     flag: '🇪🇺' },
+  { id: 'UK', label: 'United Kingdom', flag: '🇬🇧' },
 ]
+
+type PaymentAccounts = {
+  IN?: { bank_name: string; account_no: string; ifsc: string; gstin: string; upi: string }
+  EU?: { account_holder: string; iban: string; swift: string; vat: string }
+  UK?: { account_holder: string; sort_code: string; account_no: string; vat: string }
+}
+
+const PAYMENT_FIELDS: Record<string, { key: string; label: string; placeholder: string; required?: boolean }[]> = {
+  IN: [
+    { key: 'bank_name',  label: 'Bank Name',            placeholder: 'HDFC Bank',              required: true },
+    { key: 'account_no', label: 'Account Number',       placeholder: '12345678901234',          required: true },
+    { key: 'ifsc',       label: 'IFSC Code',            placeholder: 'HDFC0001234',             required: true },
+    { key: 'gstin',      label: 'GSTIN',                placeholder: '29ABCDE1234F1Z5' },
+    { key: 'upi',        label: 'UPI ID (optional)',    placeholder: 'vendor@upi' },
+  ],
+  EU: [
+    { key: 'account_holder', label: 'Account Holder Name', placeholder: 'Company GmbH',        required: true },
+    { key: 'iban',           label: 'IBAN',                placeholder: 'DE89 3704 0044 …',    required: true },
+    { key: 'swift',          label: 'SWIFT / BIC',         placeholder: 'COBADEFFXXX',         required: true },
+    { key: 'vat',            label: 'VAT Number',          placeholder: 'DE123456789' },
+  ],
+  UK: [
+    { key: 'account_holder', label: 'Account Holder Name', placeholder: 'Company Ltd',         required: true },
+    { key: 'sort_code',      label: 'Sort Code',           placeholder: '20-00-00',            required: true },
+    { key: 'account_no',     label: 'Account Number',      placeholder: '12345678',            required: true },
+    { key: 'vat',            label: 'VAT Number',          placeholder: 'GB123456789' },
+  ],
+}
 
 export default function VendorOnboardingPage() {
   const router  = useRouter()
@@ -33,14 +57,9 @@ export default function VendorOnboardingPage() {
     phone:         '',
     regions:       [] as Region[],
     categories:    [] as string[],
-    gstin:         '',
-    vat_number:    '',
-    bank_account_name: '',
-    bank_account_no:   '',
-    bank_ifsc:         '',
   })
+  const [payments, setPayments] = useState<PaymentAccounts>({})
 
-  // Pre-fill company name from profile
   useEffect(() => {
     db.auth.getUser().then(async ({ data: { user } }: any) => {
       if (!user) return
@@ -61,25 +80,28 @@ export default function VendorOnboardingPage() {
       categories: f.categories.includes(c) ? f.categories.filter(x => x !== c) : [...f.categories, c],
     }))
 
+  const setPaymentField = (region: string, field: string, value: string) => {
+    setPayments(prev => ({
+      ...prev,
+      [region]: { ...(prev[region as keyof PaymentAccounts] || {}), [field]: value },
+    }))
+  }
+
   const handleSubmit = async () => {
     setSaving(true)
     const { data: { user } } = await db.auth.getUser()
     if (!user) return
 
     const { error } = await db.from('vendor_profiles').upsert({
-      user_id:           user.id,
-      company_name:      form.company_name,
-      description:       form.description || null,
-      website:           form.website     || null,
-      phone:             form.phone       || null,
-      regions:           form.regions,
-      categories:        form.categories,
-      gstin:             form.gstin       || null,
-      vat_number:        form.vat_number  || null,
-      bank_account_name: form.bank_account_name || null,
-      bank_account_no:   form.bank_account_no   || null,
-      bank_ifsc:         form.bank_ifsc          || null,
-      onboarding_done:   true,
+      user_id:          user.id,
+      company_name:     form.company_name,
+      description:      form.description  || null,
+      website:          form.website      || null,
+      phone:            form.phone        || null,
+      regions:          form.regions,
+      categories:       form.categories,
+      payment_accounts: payments,
+      onboarding_done:  true,
     }, { onConflict: 'user_id' })
 
     if (error) { toast.error(error.message); setSaving(false); return }
@@ -87,21 +109,21 @@ export default function VendorOnboardingPage() {
     router.push('/vendor/dashboard')
   }
 
-  const inputCls = 'w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-gold/50 transition-colors'
-  const labelCls = 'block text-[12px] font-semibold uppercase tracking-wider text-white/40 mb-2'
+  const inputCls  = 'w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-gold/50 transition-colors'
+  const labelCls  = 'block text-[12px] font-semibold uppercase tracking-wider text-white/40 mb-2'
 
   return (
-    <div className="min-h-screen bg-[#0F1117] flex items-center justify-center p-8">
-      <div className="w-full max-w-[640px]">
+    <div className="min-h-screen bg-[#0F1117] flex items-start justify-center p-8">
+      <div className="w-full max-w-[680px] pt-4">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-gold/10 border border-gold/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold-light">
-              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9882A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
             </svg>
           </div>
           <h1 className="font-display font-extrabold text-3xl text-white mb-2">Set up your vendor profile</h1>
-          <p className="text-white/40 text-sm">Complete your profile to start listing products and receiving orders</p>
+          <p className="text-white/40 text-sm">Complete your profile to start listing and receiving orders</p>
         </div>
 
         {/* Step indicator */}
@@ -109,19 +131,20 @@ export default function VendorOnboardingPage() {
           {[1, 2, 3].map(s => (
             <div key={s} className="flex items-center gap-2 flex-1">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold border transition-all ${
-                s < step  ? 'bg-gold border-gold text-navy' :
-                s === step ? 'bg-gold/20 border-gold/50 text-gold-light' :
-                'bg-white/5 border-white/10 text-white/30'
+                s < step ? 'bg-gold border-gold text-navy' : s === step ? 'bg-gold/20 border-gold/50 text-gold-light' : 'bg-white/5 border-white/10 text-white/30'
               }`}>{s < step ? '✓' : s}</div>
-              {s < 3 && <div className={`flex-1 h-px ${s < step ? 'bg-gold/50' : 'bg-white/10'}`} />}
+              <p className={`text-[11.5px] font-medium flex-1 ${s === step ? 'text-white/70' : 'text-white/25'}`}>
+                {s === 1 ? 'Company Info' : s === 2 ? 'Categories' : 'Payment Details'}
+              </p>
+              {s < 3 && <div className={`h-px w-6 ${s < step ? 'bg-gold/50' : 'bg-white/10'}`} />}
             </div>
           ))}
         </div>
 
-        {/* Step 1 — Company info */}
+        {/* ── STEP 1: Company Info ── */}
         {step === 1 && (
           <div className="space-y-5">
-            <h2 className="text-white font-display font-bold text-lg mb-1">Company Information</h2>
+            <h2 className="text-white font-display font-bold text-lg">Company Information</h2>
             <div>
               <label className={labelCls}>Company Name *</label>
               <input className={inputCls} value={form.company_name}
@@ -130,9 +153,9 @@ export default function VendorOnboardingPage() {
             </div>
             <div>
               <label className={labelCls}>Description</label>
-              <textarea className={inputCls + ' min-h-[100px] resize-none'} value={form.description}
+              <textarea className={inputCls + ' min-h-[90px] resize-none'} value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Tell exhibitors what you offer, your specialities, years of experience…" />
+                placeholder="What you offer, specialities, years of experience…" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -153,19 +176,19 @@ export default function VendorOnboardingPage() {
               <div className="flex gap-3">
                 {REGIONS.map(r => (
                   <button key={r.id} type="button" onClick={() => toggleRegion(r.id)}
-                    className={`flex-1 py-3 rounded-lg border text-sm font-medium transition-all ${
+                    className={`flex-1 py-3 rounded-lg border text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                       form.regions.includes(r.id)
                         ? 'bg-gold/20 border-gold/50 text-gold-light'
                         : 'bg-white/5 border-white/10 text-white/50 hover:border-white/20'
-                    }`}>{r.label}</button>
+                    }`}>
+                    {r.flag} {r.label}
+                    {form.regions.includes(r.id) && <CheckCircle size={13} />}
+                  </button>
                 ))}
               </div>
             </div>
             <button onClick={() => {
-              if (!form.company_name || form.regions.length === 0) {
-                toast.error('Company name and at least one region required')
-                return
-              }
+              if (!form.company_name || form.regions.length === 0) { toast.error('Company name and at least one region required'); return }
               setStep(2)
             }} className="w-full bg-gold hover:bg-gold-light text-navy font-bold py-3.5 rounded-lg transition-colors mt-2">
               Continue →
@@ -173,10 +196,10 @@ export default function VendorOnboardingPage() {
           </div>
         )}
 
-        {/* Step 2 — Categories */}
+        {/* ── STEP 2: Categories ── */}
         {step === 2 && (
           <div className="space-y-5">
-            <h2 className="text-white font-display font-bold text-lg mb-1">Product Categories</h2>
+            <h2 className="text-white font-display font-bold text-lg">Product Categories</h2>
             <p className="text-white/40 text-sm">Select the categories of rental items you offer</p>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORIES.map(cat => (
@@ -191,59 +214,74 @@ export default function VendorOnboardingPage() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-3 mt-2">
-              <button onClick={() => setStep(1)} className="flex-1 bg-white/5 border border-white/10 text-white/60 font-medium py-3.5 rounded-lg hover:bg-white/10 transition-colors">← Back</button>
+            <div className="flex gap-3">
+              <button onClick={() => setStep(1)} className="flex-1 bg-white/5 border border-white/10 text-white/60 py-3.5 rounded-lg hover:bg-white/10 transition-colors">← Back</button>
               <button onClick={() => setStep(3)} className="flex-1 bg-gold hover:bg-gold-light text-navy font-bold py-3.5 rounded-lg transition-colors">Continue →</button>
             </div>
           </div>
         )}
 
-        {/* Step 3 — Tax & Banking */}
+        {/* ── STEP 3: Regional Payment Details ── */}
         {step === 3 && (
-          <div className="space-y-5">
-            <h2 className="text-white font-display font-bold text-lg mb-1">Tax &amp; Banking</h2>
-            <p className="text-white/40 text-sm">Required for payouts and compliant invoicing. Can be updated later.</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>GSTIN (India)</label>
-                <input className={inputCls} value={form.gstin}
-                  onChange={e => setForm(f => ({ ...f, gstin: e.target.value }))}
-                  placeholder="29ABCDE1234F1Z5" />
-              </div>
-              <div>
-                <label className={labelCls}>VAT Number (EU/UK)</label>
-                <input className={inputCls} value={form.vat_number}
-                  onChange={e => setForm(f => ({ ...f, vat_number: e.target.value }))}
-                  placeholder="GB123456789" />
-              </div>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-white font-display font-bold text-lg">Payment Details</h2>
+              <p className="text-white/40 text-sm mt-1">
+                Configure payment accounts for each region you serve. Only regions you selected appear here.
+              </p>
             </div>
-            <div className="border-t border-white/10 pt-5">
-              <p className="text-[12px] font-semibold uppercase tracking-wider text-white/30 mb-4">Bank Account (for payouts)</p>
-              <div className="space-y-4">
-                <div>
-                  <label className={labelCls}>Account Holder Name</label>
-                  <input className={inputCls} value={form.bank_account_name}
-                    onChange={e => setForm(f => ({ ...f, bank_account_name: e.target.value }))}
-                    placeholder="Company or individual name" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelCls}>Account Number</label>
-                    <input className={inputCls} value={form.bank_account_no}
-                      onChange={e => setForm(f => ({ ...f, bank_account_no: e.target.value }))}
-                      placeholder="Account number" />
-                  </div>
-                  <div>
-                    <label className={labelCls}>IFSC / Sort Code</label>
-                    <input className={inputCls} value={form.bank_ifsc}
-                      onChange={e => setForm(f => ({ ...f, bank_ifsc: e.target.value }))}
-                      placeholder="HDFC0001234" />
-                  </div>
-                </div>
+
+            {form.regions.length === 0 && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-300">
+                No regions selected. Go back to Step 1 and select your service regions.
               </div>
-            </div>
-            <div className="flex gap-3 mt-2">
-              <button onClick={() => setStep(2)} className="flex-1 bg-white/5 border border-white/10 text-white/60 font-medium py-3.5 rounded-lg hover:bg-white/10 transition-colors">← Back</button>
+            )}
+
+            {form.regions.map(regionId => {
+              const region     = REGIONS.find(r => r.id === regionId)!
+              const fields     = PAYMENT_FIELDS[regionId] || []
+              const payData    = payments[regionId as keyof PaymentAccounts] || {} as any
+
+              const regionColors: Record<string, string> = {
+                IN: 'border-orange-500/25 bg-orange-500/5',
+                EU: 'border-blue-500/25 bg-blue-500/5',
+                UK: 'border-red-500/25 bg-red-500/5',
+              }
+
+              return (
+                <div key={regionId} className={`border rounded-xl p-6 ${regionColors[regionId] || 'border-white/10 bg-white/3'}`}>
+                  <div className="flex items-center gap-2.5 mb-5">
+                    <span className="text-2xl">{region.flag}</span>
+                    <h3 className="font-display font-bold text-white text-base">{region.label}</h3>
+                    <span className="text-[10px] font-bold text-white/30 bg-white/8 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      {regionId === 'IN' ? 'INR' : regionId === 'EU' ? 'EUR' : 'GBP'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {fields.map(field => (
+                      <div key={field.key} className={field.key === 'account_holder' || field.key === 'bank_name' ? 'col-span-2' : ''}>
+                        <label className={labelCls}>
+                          {field.label}{field.required && ' *'}
+                        </label>
+                        <input
+                          className={inputCls}
+                          value={(payData as any)[field.key] || ''}
+                          onChange={e => setPaymentField(regionId, field.key, e.target.value)}
+                          placeholder={field.placeholder}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+
+            <p className="text-white/25 text-[12px] text-center">
+              Payment details are encrypted and only used for payouts. You can update them anytime in Settings.
+            </p>
+
+            <div className="flex gap-3">
+              <button onClick={() => setStep(2)} className="flex-1 bg-white/5 border border-white/10 text-white/60 py-3.5 rounded-lg hover:bg-white/10 transition-colors">← Back</button>
               <button onClick={handleSubmit} disabled={saving}
                 className="flex-1 bg-gold hover:bg-gold-light text-navy font-bold py-3.5 rounded-lg transition-colors disabled:opacity-60">
                 {saving ? 'Saving…' : 'Complete Setup ✓'}
