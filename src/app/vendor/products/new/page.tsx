@@ -129,7 +129,7 @@ export default function NewProductPage() {
       dimensions:       form.dimensions    || null,
       weight_kg:        form.weight_kg ? parseFloat(form.weight_kg) : null,
       tags:             form.tags ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      badge:            form.badge         || null,
+     
     }).select().single()
 
     if (error) { toast.error(error.message); setSaving(false); return }
