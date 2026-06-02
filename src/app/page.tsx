@@ -47,7 +47,7 @@ export default async function HomePage() {
       <ShowsTicker />
       <main>
         <HeroSection />
-        <ProductsSection products={featuredProducts} />
+        <ProductsSection />
         <VenuesSection venues={(venues || []) as Venue[]} />
         <HowItWorks />
         <ComplianceSection />
