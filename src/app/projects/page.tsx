@@ -2,7 +2,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { FolderOpen, Plus, MapPin, Calendar, ArrowRight } from 'lucide-react'
+import { FolderOpen, Plus, MapPin, Calendar, ArrowRight, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import type { Project } from '@/types/database'
 
 const STATUS_STYLE: Record<string, string> = {
@@ -17,6 +18,7 @@ export default function ProjectsPage() {
   const db = useMemo(() => createClient() as any, [])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading,  setLoading]  = useState(true)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     db.auth.getUser().then(async ({ data: { user } }: any) => {
@@ -29,9 +31,22 @@ export default function ProjectsPage() {
     })
   }, [db])
 
+  const handleDelete = async (e: React.MouseEvent, projectId: string, projectName: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirm(`Delete project "${projectName}"? This will also remove all items added to it.`)) return
+    setDeleting(projectId)
+    // Delete project items first (cascade should handle it but be explicit)
+    await db.from('project_items').delete().eq('project_id', projectId)
+    const { error } = await db.from('projects').delete().eq('id', projectId)
+    if (error) { toast.error(error.message); setDeleting(null); return }
+    setProjects(ps => ps.filter(p => p.id !== projectId))
+    toast.success('Project deleted')
+    setDeleting(null)
+  }
+
   return (
     <div className="p-8">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display font-extrabold text-2xl text-navy">My Projects</h1>
@@ -57,41 +72,54 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           {projects.map(p => (
-            <Link key={p.id} href={`/projects/${p.id}`}
-              className="bg-white border border-[#DDD8CF] rounded-xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all group">
-              <div className="flex items-start justify-between mb-3">
-                <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_STYLE[p.status]}`}>
-                  {p.status}
-                </span>
-                <ArrowRight size={16} className="text-[#DDD8CF] group-hover:text-gold transition-colors" />
-              </div>
-              <h3 className="font-display font-bold text-navy text-base mb-1 leading-snug">{p.name}</h3>
-              {p.event_name && <p className="text-[13px] text-[#6B6B6B] mb-3">{p.event_name}</p>}
-              <div className="space-y-1.5 mt-auto">
-                {(p.city || p.venue) && (
-                  <div className="flex items-center gap-1.5 text-[12px] text-[#6B6B6B]">
-                    <MapPin size={11} className="text-gold flex-shrink-0" />
-                    {p.city || p.venue}
-                    {p.region && <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded font-medium ${p.region === 'IN' ? 'bg-orange-50 text-orange-600' : p.region === 'EU' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>{p.region}</span>}
-                  </div>
-                )}
-                {(p.start_date || p.end_date) && (
-                  <div className="flex items-center gap-1.5 text-[12px] text-[#6B6B6B]">
-                    <Calendar size={11} className="text-gold flex-shrink-0" />
-                    {p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
-                    {p.end_date && ` — ${new Date(p.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
-                  </div>
-                )}
-              </div>
-              {p.budget && (
-                <div className="mt-3 pt-3 border-t border-[#F0ECE4]">
-                  <span className="text-[12px] text-[#6B6B6B]">Budget: </span>
-                  <span className="text-[13px] font-semibold text-navy">
-                    {p.currency === 'INR' ? '₹' : p.currency === 'GBP' ? '£' : '€'}{p.budget.toLocaleString()}
+            <div key={p.id} className="relative group">
+              <Link href={`/projects/${p.id}`}
+                className="block bg-white border border-[#DDD8CF] rounded-xl p-6 hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <div className="flex items-start justify-between mb-3">
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full capitalize ${STATUS_STYLE[p.status]}`}>
+                    {p.status}
                   </span>
+                  <ArrowRight size={16} className="text-[#DDD8CF] group-hover:text-gold transition-colors" />
                 </div>
-              )}
-            </Link>
+                <h3 className="font-display font-bold text-navy text-base mb-1 leading-snug">{p.name}</h3>
+                {p.event_name && <p className="text-[13px] text-[#6B6B6B] mb-3">{p.event_name}</p>}
+                <div className="space-y-1.5 mt-auto">
+                  {(p.city || (p as any).venue) && (
+                    <div className="flex items-center gap-1.5 text-[12px] text-[#6B6B6B]">
+                      <MapPin size={11} className="text-gold flex-shrink-0" />
+                      {p.city || (p as any).venue}
+                      {p.region && (
+                        <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded font-medium ${p.region === 'IN' ? 'bg-orange-50 text-orange-600' : p.region === 'EU' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>
+                          {p.region}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {(p.start_date || p.end_date) && (
+                    <div className="flex items-center gap-1.5 text-[12px] text-[#6B6B6B]">
+                      <Calendar size={11} className="text-gold flex-shrink-0" />
+                      {p.start_date ? new Date(p.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                      {p.end_date && ` — ${new Date(p.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+                    </div>
+                  )}
+                </div>
+                {p.budget && (
+                  <div className="mt-3 pt-3 border-t border-[#F0ECE4]">
+                    <span className="text-[12px] text-[#6B6B6B]">Budget: </span>
+                    <span className="text-[13px] font-semibold text-navy">
+                      {p.currency === 'INR' ? '₹' : p.currency === 'GBP' ? '£' : '€'}{p.budget.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </Link>
+              {/* Delete button */}
+              <button
+                onClick={(e) => handleDelete(e, p.id, p.name)}
+                disabled={deleting === p.id}
+                className="absolute top-3 right-10 w-8 h-8 bg-white border border-[#DDD8CF] rounded-lg items-center justify-center text-[#6B6B6B] hover:text-red-500 hover:border-red-300 transition-all opacity-0 group-hover:opacity-100 hidden group-hover:flex shadow-sm">
+                <Trash2 size={14} />
+              </button>
+            </div>
           ))}
         </div>
       )}
