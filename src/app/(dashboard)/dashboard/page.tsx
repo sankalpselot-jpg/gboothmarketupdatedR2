@@ -2,135 +2,186 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Package, FileText, User, ShoppingCart } from 'lucide-react'
-import { fmtDate, ORDER_STATUS_STYLES, QUOTE_STATUS_STYLES } from '@/lib/utils/format'
-import type { OrderStatus, QuoteStatus } from '@/types/database'
+import { Package, FolderOpen, ShoppingCart, MapPin } from 'lucide-react'
+import { fmtDate } from '@/lib/utils/format'
+
+const SYM: Record<string, string> = { INR: '₹', EUR: '€', GBP: '£', USD: '$' }
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const db = supabase as any
 
   const { data: profile } = await supabase
     .from('profiles').select('*').eq('id', user!.id).single()
 
-  const { data: orders } = await supabase
-    .from('orders')
+  // Fix #7 — query vendor_orders not orders
+  const { data: vendorOrders } = await db
+    .from('vendor_orders')
     .select('id, order_number, status, total, currency, created_at')
-    .eq('user_id', user!.id)
+    .eq('consultant_id', user!.id)
     .order('created_at', { ascending: false })
     .limit(5)
 
-  const { data: quotes } = await supabase
-    .from('quotes')
-    .select('id, quote_number, status, created_at')
-    .eq('user_id', user!.id)
-    .order('created_at', { ascending: false })
+  const { count: totalOrders } = await db
+    .from('vendor_orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('consultant_id', user!.id)
+
+  // Fix #8 — sum vendor_orders for budget used
+  const { data: allOrders } = await db
+    .from('vendor_orders')
+    .select('total, currency')
+    .eq('consultant_id', user!.id)
+    .not('status', 'eq', 'cancelled')
+
+  const budgetUsed = (allOrders || []).reduce((s: number, o: any) => s + (o.total || 0), 0)
+
+  const { data: projects } = await db
+    .from('projects')
+    .select('id, name, status, budget, currency')
+    .eq('consultant_id', user!.id)
+    .order('updated_at', { ascending: false })
     .limit(5)
 
   const { count: cartCount } = await supabase
-    .from('cart_items')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user!.id)
+    .from('cart_items').select('*', { count: 'exact', head: true }).eq('user_id', user!.id)
 
   const firstName = profile?.full_name?.split(' ')[0] ?? ''
 
+  const STATUS_STYLES: Record<string, string> = {
+    pending:     'bg-yellow-50 text-yellow-700 border-yellow-200',
+    accepted:    'bg-blue-50 text-blue-700 border-blue-200',
+    in_production:'bg-purple-50 text-purple-700 border-purple-200',
+    packed:      'bg-amber-50 text-amber-700 border-amber-200',
+    in_transit:  'bg-orange-50 text-orange-700 border-orange-200',
+    delivered:   'bg-teal-50 text-teal-700 border-teal-200',
+    completed:   'bg-green-50 text-green-700 border-green-200',
+    cancelled:   'bg-red-50 text-red-700 border-red-200',
+    draft:       'bg-gray-50 text-gray-600 border-gray-200',
+    active:      'bg-blue-50 text-blue-700 border-blue-200',
+    ordered:     'bg-purple-50 text-purple-700 border-purple-200',
+  }
+
   return (
-    <div className="max-w-[1280px] mx-auto px-10 py-10">
+    // Fix #9 — compact layout that fits one screen
+    <div className="max-w-[1200px] mx-auto px-8 py-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-display font-extrabold text-3xl text-navy">
-          Welcome back{firstName ? `, ${firstName}` : ''}!
-        </h1>
-        <p className="text-[#6B6B6B] mt-1">{profile?.company_name ?? 'Your BoothMarket account'}</p>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="font-display font-extrabold text-2xl text-navy">
+            Welcome back{firstName ? `, ${firstName}` : ''}!
+          </h1>
+          <p className="text-[#6B6B6B] text-sm mt-0.5">{profile?.company_name ?? 'BoothMarket Account'}</p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/projects/new" className="bg-navy text-white font-bold px-4 py-2 rounded-lg text-sm hover:bg-navy-light transition-colors">
+            + New Project
+          </Link>
+          <Link href="/browse" className="border border-[#DDD8CF] text-navy font-medium px-4 py-2 rounded-lg text-sm hover:border-navy transition-colors">
+            Browse
+          </Link>
+        </div>
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+      {/* Stats row — compact */}
+      <div className="grid grid-cols-4 gap-3 mb-5">
         {[
-          { icon: Package,      label: 'Total Orders',    value: orders?.length  ?? 0, href: '/dashboard/orders' },
-          { icon: FileText,     label: 'Quote Requests',  value: quotes?.length  ?? 0, href: '/dashboard/quotes' },
-          { icon: ShoppingCart, label: 'Items in Cart',   value: cartCount       ?? 0, href: '/cart' },
-          { icon: User,         label: 'Region',          value: profile?.region ?? 'Not set', href: '/dashboard/profile' },
+          { icon: Package,     label: 'Total Orders',  value: totalOrders ?? 0, href: '/projects',         color: 'text-blue-600' },
+          { icon: FolderOpen,  label: 'My Projects',   value: projects?.length ?? 0, href: '/projects',    color: 'text-purple-600' },
+          { icon: ShoppingCart,label: 'Cart Items',    value: cartCount ?? 0,   href: '/cart',             color: 'text-gold' },
+          { icon: MapPin,      label: 'Region',        value: profile?.region ?? '—', href: '/dashboard/profile', color: 'text-green-600' },
         ].map(s => (
           <Link key={s.label} href={s.href}
-            className="card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all">
-            <s.icon className="w-5 h-5 text-gold mb-3" />
-            <div className="font-display font-bold text-2xl text-navy mb-0.5">{s.value}</div>
-            <div className="text-[13px] text-[#6B6B6B]">{s.label}</div>
+            className="card p-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
+            <s.icon size={18} className={s.color + ' mb-2'} />
+            <div className={`font-display font-bold text-xl mb-0.5 ${s.color}`}>{s.value}</div>
+            <div className="text-[12px] text-[#6B6B6B]">{s.label}</div>
           </Link>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Recent orders */}
+      <div className="grid lg:grid-cols-2 gap-5">
+        {/* Recent orders — vendor_orders */}
         <div className="card overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#DDD8CF] flex justify-between items-center">
-            <h2 className="font-display font-bold text-navy">Recent Orders</h2>
-            <Link href="/dashboard/orders" className="text-[13px] text-gold hover:text-gold-light">View all</Link>
+          <div className="px-5 py-3.5 border-b border-[#DDD8CF] flex justify-between items-center">
+            <h2 className="font-display font-bold text-navy text-sm">Recent Orders</h2>
+            <Link href="/projects" className="text-[12px] text-gold hover:text-gold-light">View all</Link>
           </div>
-          {!orders?.length ? (
-            <div className="p-8 text-center text-[#6B6B6B] text-sm">
-              No orders yet.{' '}
-              <Link href="/products" className="text-gold">Browse products →</Link>
+          {!vendorOrders?.length ? (
+            <div className="p-6 text-center text-[#6B6B6B] text-sm">
+              No orders yet. <Link href="/browse" className="text-gold">Browse products →</Link>
             </div>
           ) : (
             <div>
-              {orders.map(o => {
-                const s = ORDER_STATUS_STYLES[o.status as OrderStatus]
-                return (
-                  <Link key={o.id} href={`/dashboard/orders/${o.id}`}
-                    className="flex items-center justify-between px-6 py-3.5 border-b border-cream-dark hover:bg-cream/50 transition-colors last:border-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-mono font-medium text-navy text-sm">{o.order_number}</span>
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border capitalize ${s.className}`}>{s.label}</span>
-                    </div>
-                    <span className="text-[12.5px] text-[#6B6B6B]">{fmtDate(o.created_at)}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Recent quotes */}
-        <div className="card overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#DDD8CF] flex justify-between items-center">
-            <h2 className="font-display font-bold text-navy">Quote Requests</h2>
-            <Link href="/dashboard/quotes" className="text-[13px] text-gold hover:text-gold-light">View all</Link>
-          </div>
-          {!quotes?.length ? (
-            <div className="p-8 text-center text-[#6B6B6B] text-sm">
-              No quotes yet.{' '}
-              <Link href="/quote" className="text-gold">Request one →</Link>
-            </div>
-          ) : (
-            <div>
-              {quotes.map(q => {
-                const s = QUOTE_STATUS_STYLES[q.status as QuoteStatus]
-                return (
-                  <div key={q.id}
-                    className="flex items-center justify-between px-6 py-3.5 border-b border-cream-dark last:border-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-mono font-medium text-navy text-sm">{q.quote_number}</span>
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border capitalize ${s.className}`}>{s.label}</span>
-                    </div>
-                    <span className="text-[12.5px] text-[#6B6B6B]">{fmtDate(q.created_at)}</span>
+              {vendorOrders.map((o: any) => (
+                <div key={o.id} className="flex items-center justify-between px-5 py-3 border-b border-cream-dark last:border-0">
+                  <div>
+                    <p className="font-mono font-medium text-navy text-[12.5px]">{o.order_number}</p>
+                    <p className="text-[11px] text-[#6B6B6B] mt-0.5">{fmtDate(o.created_at)}</p>
                   </div>
-                )
-              })}
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-navy text-[13px]">
+                      {SYM[o.currency] || '₹'}{o.total?.toLocaleString()}
+                    </span>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize ${STATUS_STYLES[o.status] || ''}`}>
+                      {o.status?.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Quick actions */}
-      <div className="mt-8 card p-6">
-        <h2 className="font-display font-bold text-navy mb-4 text-sm">Quick Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          <Link href="/products" className="btn-primary px-5 py-2.5 text-sm">Browse Products</Link>
-          <Link href="/quote" className="btn-outline px-5 py-2.5 text-sm">Request a Quote</Link>
-          <Link href="/cart" className="btn-outline px-5 py-2.5 text-sm">View Cart</Link>
-          <Link href="/dashboard/profile" className="btn-outline px-5 py-2.5 text-sm">Edit Profile</Link>
+        {/* Projects + Budget */}
+        <div className="space-y-4">
+          <div className="card overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#DDD8CF] flex justify-between items-center">
+              <h2 className="font-display font-bold text-navy text-sm">My Projects</h2>
+              <Link href="/projects" className="text-[12px] text-gold hover:text-gold-light">View all</Link>
+            </div>
+            {!projects?.length ? (
+              <div className="p-6 text-center text-[#6B6B6B] text-sm">
+                No projects. <Link href="/projects/new" className="text-gold">Create one →</Link>
+              </div>
+            ) : (
+              <div>
+                {projects.map((p: any) => (
+                  <Link key={p.id} href={`/projects/${p.id}`}
+                    className="flex items-center justify-between px-5 py-3 border-b border-cream-dark last:border-0 hover:bg-cream/40 transition-colors">
+                    <p className="font-medium text-navy text-[13px] truncate flex-1">{p.name}</p>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border capitalize ml-2 ${STATUS_STYLES[p.status] || ''}`}>
+                      {p.status}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Budget summary */}
+          <div className="card p-5">
+            <h2 className="font-display font-bold text-navy text-sm mb-4">Spend Summary</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-[13px] text-[#6B6B6B]">Total Spent (all orders)</span>
+                <span className="font-display font-bold text-navy">₹{budgetUsed.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[13px] text-[#6B6B6B]">Orders placed</span>
+                <span className="font-semibold text-navy">{totalOrders ?? 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[13px] text-[#6B6B6B]">Active projects</span>
+                <span className="font-semibold text-navy">{projects?.filter((p: any) => p.status === 'active' || p.status === 'draft').length ?? 0}</span>
+              </div>
+              <Link href="/browse"
+                className="block w-full text-center bg-cream hover:bg-[#EDE8DF] text-navy font-medium py-2.5 rounded-lg text-sm transition-colors mt-2">
+                Browse Products →
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>

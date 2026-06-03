@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Zap, Clock, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Zap, Clock, CheckCircle, ArrowLeft, Upload, X as XIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import type { Region } from '@/types/database'
@@ -23,6 +23,7 @@ const REGIONS: { id: Region; label: string }[] = [
 
 export default function EmergencyPage() {
   const db = useMemo(() => createClient() as any, [])
+  const [attachment,    setAttachment]    = useState<{ file: File; preview: string; url?: string; uploading: boolean } | null>(null)
   const [form, setForm] = useState({
     title: '', description: '', category: '',
     quantity: '1', required_date: '', venue: '',
@@ -61,6 +62,21 @@ export default function EmergencyPage() {
     load()
   }, [db, submitted])
 
+  const handleImageAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) { toast.error('Max 5MB'); return }
+    const preview = URL.createObjectURL(file)
+    setAttachment({ file, preview, uploading: true })
+    const ext = file.name.split('.').pop()
+    const fn  = `emergency-${Date.now()}.${ext}`
+    const { data, error } = await db.storage.from('vendor-images').upload(fn, file, { contentType: file.type })
+    if (error) { toast.error('Upload failed'); setAttachment(null); return }
+    const { data: { publicUrl } } = db.storage.from('vendor-images').getPublicUrl(fn)
+    setAttachment(prev => prev ? { ...prev, uploading: false, url: publicUrl } : null)
+    e.target.value = ''
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title || !form.required_date) {
@@ -83,6 +99,8 @@ export default function EmergencyPage() {
       region:        form.region,
       budget:        form.budget ? parseFloat(form.budget) : null,
       currency:      form.currency,
+      attachment_url:  attachment?.url || null,
+      attachment_name: attachment?.file.name || null,
     })
 
     if (error) { toast.error(error.message); setSubmitting(false); return }
@@ -159,6 +177,30 @@ export default function EmergencyPage() {
                 <label className={labelCls}>Required By *</label>
                 <input type="date" className={inputCls} value={form.required_date}
                   onChange={e => setForm(f => ({ ...f, required_date: e.target.value }))} required />
+              </div>
+              <div>
+                <label className={labelCls}>Attach Photo (optional)</label>
+                {attachment ? (
+                  <div className="flex items-center gap-3 bg-[#F9F6F0] border border-[#DDD8CF] rounded-lg p-3">
+                    <img src={attachment.preview} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-navy truncate">{attachment.file.name}</p>
+                      <p className="text-[12px] text-[#6B6B6B]">{attachment.uploading ? 'Uploading…' : '✓ Uploaded'}</p>
+                    </div>
+                    <button type="button" onClick={() => setAttachment(null)} className="text-[#6B6B6B] hover:text-red-500">
+                      <XIcon size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-3 border-2 border-dashed border-[#DDD8CF] hover:border-navy rounded-xl p-4 cursor-pointer transition-colors">
+                    <Upload size={20} className="text-[#6B6B6B]" />
+                    <div>
+                      <p className="text-[13.5px] font-medium text-navy">Upload a photo</p>
+                      <p className="text-[12px] text-[#6B6B6B]">Show what you need — max 5MB · JPG, PNG, WebP</p>
+                    </div>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleImageAttach} />
+                  </label>
+                )}
               </div>
             </div>
 
