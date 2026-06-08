@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import {
   ShoppingCart, User, Menu, X, Heart, LogOut,
-  FolderOpen, Store, Zap, MapPin, ChevronDown
+  FolderOpen, Store, Zap, MapPin, ChevronDown, MessageSquare
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
@@ -189,6 +189,9 @@ export default function Header() {
               </Link>
               <Link href="/browse/vendors" className="flex items-center gap-1.5 text-[12.5px] text-[#1A1A1A] px-3 py-2 rounded hover:bg-cream transition-colors">
                 <MapPin size={12} className="text-gold" /> Find Vendors
+              </Link>
+              <Link href="/quotes" className="flex items-center gap-1.5 text-[12.5px] text-[#1A1A1A] px-3 py-2 rounded hover:bg-cream transition-colors">
+                <MessageSquare size={12} className="text-gold" /> My Quotes
               </Link>
               <Link href="/emergency" className="flex items-center gap-1.5 text-[12.5px] text-red-600 px-3 py-2 rounded hover:bg-red-50 transition-colors">
                 <Zap size={11} /> Emergency

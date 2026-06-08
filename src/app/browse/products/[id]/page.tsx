@@ -15,7 +15,6 @@ import {
   getRegionalPrice, FALLBACK_RATES
 } from '@/lib/utils/currency'
 import { useRegion } from '@/hooks/useRegion'
-import { useWishlist } from '@/hooks/useWishlist'
 import toast from 'react-hot-toast'
 
 const formatHours = (h: number) =>
@@ -43,11 +42,8 @@ export default function ConsultantProductDetailPage() {
   const [quoteOpen,      setQuoteOpen]      = useState(false)
   const [quoteMsg,       setQuoteMsg]       = useState('')
   const [quoteSending,   setQuoteSending]   = useState(false)
-  const { toggle: toggleWishlist, isWishlisted } = useWishlist()
-  const savedToWishlist = isWishlisted(params.id as string)
+  const [savedToWishlist,setSavedToWishlist]= useState(false)
   const [tab,            setTab]            = useState<'overview'|'specs'|'vendor'>('overview')
-  const [rentalDays,     setRentalDays]     = useState(1)
-  const [rentalQty,      setRentalQty]      = useState(1)
 
   useEffect(() => {
     const load = async () => {
@@ -134,15 +130,17 @@ export default function ConsultantProductDetailPage() {
     const { data: { user } } = await db.auth.getUser()
     if (!user) { toast.error('Please sign in to request a quote'); return }
     setQuoteSending(true)
-    // Create notification to vendor
-    await db.from('notifications').insert({
-      user_id: product.vendor_profiles?.user_id || product.vendor_id,
-      type:    'system',
-      title:   `Quote Request for ${product.name}`,
-      body:    quoteMsg,
-      data:    { vendor_product_id: params.id },
-    }).catch(() => {})
-    toast.success('Quote request sent to vendor!')
+    const res = await fetch('/api/quotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vendor_product_id: params.id,
+        message: quoteMsg,
+      }),
+    })
+    const { error } = await res.json()
+    if (error) { toast.error(error); setQuoteSending(false); return }
+    toast.success('Quote request sent! Check My Quotes to track the response.')
     setQuoteOpen(false)
     setQuoteMsg('')
     setQuoteSending(false)
@@ -522,43 +520,6 @@ export default function ConsultantProductDetailPage() {
             )}
           </div>
 
-          {/* Days + Qty selectors */}
-          <div className="bg-white border border-[#DDD8CF] rounded-xl p-4 mb-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6B6B6B] mb-3">Rental Requirements</p>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="block text-[12px] text-[#6B6B6B] mb-1.5">Rental Days</label>
-                <div className="flex items-center border border-[#DDD8CF] rounded-lg overflow-hidden">
-                  <button onClick={() => setRentalDays(d => Math.max(product.min_rental_days || 1, d - 1))}
-                    className="px-3 py-2 text-[#6B6B6B] hover:bg-cream transition-colors font-bold text-lg">−</button>
-                  <span className="flex-1 text-center font-semibold text-navy text-sm">{rentalDays}</span>
-                  <button onClick={() => setRentalDays(d => Math.min(product.max_rental_days || 30, d + 1))}
-                    className="px-3 py-2 text-[#6B6B6B] hover:bg-cream transition-colors font-bold text-lg">+</button>
-                </div>
-                <p className="text-[10.5px] text-[#6B6B6B] mt-1">Min {product.min_rental_days}d · Max {product.max_rental_days}d</p>
-              </div>
-              <div>
-                <label className="block text-[12px] text-[#6B6B6B] mb-1.5">Quantity</label>
-                <div className="flex items-center border border-[#DDD8CF] rounded-lg overflow-hidden">
-                  <button onClick={() => setRentalQty(q => Math.max(1, q - 1))}
-                    className="px-3 py-2 text-[#6B6B6B] hover:bg-cream transition-colors font-bold text-lg">−</button>
-                  <span className="flex-1 text-center font-semibold text-navy text-sm">{rentalQty}</span>
-                  <button onClick={() => setRentalQty(q => Math.min(product.available_stock || 99, q + 1))}
-                    className="px-3 py-2 text-[#6B6B6B] hover:bg-cream transition-colors font-bold text-lg">+</button>
-                </div>
-                <p className="text-[10.5px] text-[#6B6B6B] mt-1">{product.available_stock} available</p>
-              </div>
-            </div>
-            <div className="bg-[#F9F6F0] rounded-lg px-3.5 py-2.5 flex justify-between items-center">
-              <span className="text-[12.5px] text-[#6B6B6B]">
-                {formatPrice(price, currency)} × {rentalQty} × {rentalDays} day{rentalDays > 1 ? 's' : ''}
-              </span>
-              <span className="font-display font-bold text-navy text-xl">
-                {formatPrice(price * rentalQty * rentalDays, currency)}
-              </span>
-            </div>
-          </div>
-
           {/* Stock */}
           <div className="flex items-center gap-2">
             <span className={`text-[12px] font-semibold px-3 py-1.5 rounded-full border ${
@@ -616,7 +577,7 @@ export default function ConsultantProductDetailPage() {
               className="flex items-center justify-center gap-2 border-[1.5px] border-navy text-navy font-medium py-3 rounded-xl hover:bg-navy/5 transition-colors text-[13px]">
               <MessageSquare size={14} /> Request Quote
             </button>
-            <button onClick={() => { toggleWishlist(params.id as string); toast.success(savedToWishlist ? 'Removed from wishlist' : 'Saved to wishlist') }}
+            <button onClick={() => { setSavedToWishlist(v => !v); toast.success(savedToWishlist ? 'Removed from wishlist' : 'Saved to wishlist') }}
               className={`flex items-center justify-center gap-2 border-[1.5px] font-medium py-3 rounded-xl transition-colors text-[13px] ${
                 savedToWishlist ? 'border-red-300 text-red-600 bg-red-50' : 'border-[#DDD8CF] text-[#6B6B6B] hover:border-navy hover:text-navy'
               }`}>
@@ -630,8 +591,6 @@ export default function ConsultantProductDetailPage() {
             <h3 className="font-display font-bold text-navy text-sm mb-3">Commercial Details</h3>
             {[
               { label: 'Base Price',          value: `${formatPrice(price, currency)} / day` },
-              { label: 'Selected Duration',    value: `${rentalQty} unit${rentalQty > 1 ? 's' : ''} × ${rentalDays} day${rentalDays > 1 ? 's' : ''}` },
-              { label: 'Estimated Total',      value: formatPrice(price * rentalQty * rentalDays, currency) },
               { label: 'Security Deposit',    value: 'Discussed with vendor' },
               { label: 'Delivery Charges',    value: sla ? `Included (${sla.delivery_hours}h before event)` : 'Discuss with vendor' },
               { label: 'Setup / Installation', value: 'Confirm with vendor' },
