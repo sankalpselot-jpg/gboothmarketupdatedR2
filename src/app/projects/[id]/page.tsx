@@ -91,6 +91,9 @@ export default function ProjectWorkspacePage() {
   const importCartToProject = async () => {
     if (!cartImport.length) return
     setImporting(true)
+    const days = project?.start_date && project?.end_date
+      ? Math.max(1, Math.ceil((new Date(project.end_date).getTime() - new Date(project.start_date).getTime()) / 86400000))
+      : 1
     for (const item of cartImport) {
       const prod = Array.isArray(item.products) ? item.products[0] : item.products
       if (!prod) continue
@@ -100,9 +103,9 @@ export default function ProjectWorkspacePage() {
         vendor_product_id: prod.id,
         vendor_id: null,
         quantity: item.quantity,
-        days: rentalDays,
+        days,
         unit_price: price,
-        total_price: price * item.quantity * rentalDays,
+        total_price: price * item.quantity * days,
       }, { onConflict: 'project_id,vendor_product_id' })
     }
     // Clear cart
